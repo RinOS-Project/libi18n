@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "../rinresource/include/rinresource/loader.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,7 +18,8 @@ enum {
     RIN_I18N_INVALID = -1,
     RIN_I18N_CORRUPT = -2,
     RIN_I18N_NOT_FOUND = -3,
-    RIN_I18N_NO_SPACE = -4
+    RIN_I18N_NO_SPACE = -4,
+    RIN_I18N_IO_ERROR = -5
 };
 
 typedef struct RinI18nCatalog {
@@ -40,6 +43,19 @@ uint32_t rin_i18n_hash(const char* text);
 uint32_t rin_i18n_crc32(const void* data, size_t size);
 int rin_i18n_catalog_open(RinI18nCatalog* catalog,
                           const void* data, size_t size);
+/* Load a localization entry through the public resource catalog into a
+ * caller-owned buffer, then open it as an RMSG catalog.  No filesystem or
+ * allocation is performed here; path authority remains in read_path.  Both
+ * catalog and storage_size are cleared before any failure is reported. */
+int rin_i18n_catalog_open_resource(
+    RinI18nCatalog* catalog,
+    const RinResourceCatalogV1* resources,
+    uint32_t resource_id,
+    RinResourceCatalogReadPathFunction read_path,
+    void* context,
+    uint8_t* storage,
+    uint64_t storage_capacity,
+    uint64_t* storage_size);
 const char* rin_i18n_catalog_locale(const RinI18nCatalog* catalog,
                                     size_t* length);
 const char* rin_i18n_get(const RinI18nCatalog* catalog,

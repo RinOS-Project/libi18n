@@ -1,6 +1,8 @@
 #include "rin_i18n.h"
 #include "rin_unicode.h"
 
+#include <string.h>
+
 #define RMSG_HEADER_SIZE 64u
 #define RMSG_ENTRY_SIZE 20u
 
@@ -141,6 +143,55 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
         }
         previous_hash = hash;
     }
+    return RIN_I18N_OK;
+}
+
+static int resource_status_to_i18n(RinResourceCatalogStatus status) {
+    switch (status) {
+        case RIN_RESOURCE_CATALOG_NOT_FOUND:
+            return RIN_I18N_NOT_FOUND;
+        case RIN_RESOURCE_CATALOG_BUFFER_TOO_SMALL:
+            return RIN_I18N_NO_SPACE;
+        case RIN_RESOURCE_CATALOG_IO_ERROR:
+            return RIN_I18N_IO_ERROR;
+        case RIN_RESOURCE_CATALOG_INVALID_ARGUMENT:
+        case RIN_RESOURCE_CATALOG_WRONG_SOURCE:
+            return RIN_I18N_INVALID;
+        default:
+            return RIN_I18N_CORRUPT;
+    }
+}
+
+int rin_i18n_catalog_open_resource(
+    RinI18nCatalog* catalog,
+    const RinResourceCatalogV1* resources,
+    uint32_t resource_id,
+    RinResourceCatalogReadPathFunction read_path,
+    void* context,
+    uint8_t* storage,
+    uint64_t storage_capacity,
+    uint64_t* storage_size)
+{
+    RinResourceCatalogStatus resource_status;
+    uint64_t loaded_size = 0u;
+    int status;
+    if (catalog != NULL) memset(catalog, 0, sizeof(*catalog));
+    if (storage_size != NULL) *storage_size = 0u;
+    if (catalog == NULL || resources == NULL || storage_size == NULL ||
+        resource_id == 0u) return RIN_I18N_INVALID;
+    resource_status = rin_resource_catalog_load(
+        resources, RIN_RESOURCE_CATALOG_TYPE_LOCALIZATION, resource_id,
+        read_path, context, storage, storage_capacity, &loaded_size);
+    if (resource_status != RIN_RESOURCE_CATALOG_OK)
+        return resource_status_to_i18n(resource_status);
+    if (loaded_size > (uint64_t)SIZE_MAX)
+        return RIN_I18N_NO_SPACE;
+    status = rin_i18n_catalog_open(catalog, storage, (size_t)loaded_size);
+    if (status != RIN_I18N_OK) {
+        memset(catalog, 0, sizeof(*catalog));
+        return status;
+    }
+    *storage_size = loaded_size;
     return RIN_I18N_OK;
 }
 
