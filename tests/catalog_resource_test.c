@@ -100,5 +100,13 @@ int main(void) {
                &catalog, &resources, 17u, NULL, NULL, storage,
                sizeof(storage), &storage_size) == RIN_I18N_CORRUPT);
     assert(storage_size == 0u && catalog.data == NULL);
+
+    /* The direct public catalog entry point must have the same
+     * failure-atomic behavior as the resource adapter. */
+    catalog.data = source;
+    catalog.size = source_size;
+    assert(rin_i18n_catalog_open(&catalog, source, source_size) ==
+           RIN_I18N_CORRUPT);
+    assert(catalog.data == NULL && catalog.size == 0u);
     return 0;
 }

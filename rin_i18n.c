@@ -90,8 +90,13 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     uint32_t locale_length;
     uint32_t previous_hash = 0u;
     uint32_t index;
-    if (!catalog || !data || size < RMSG_HEADER_SIZE ||
-        size > RIN_I18N_MAX_FILE_SIZE) return RIN_I18N_INVALID;
+    if (!catalog) return RIN_I18N_INVALID;
+    /* Direct callers must not retain a previously valid catalog when a new
+     * source is rejected.  The resource-backed wrapper already provides this
+     * guarantee; keep the lower-level entry point equally failure-atomic. */
+    memset(catalog, 0, sizeof(*catalog));
+    if (!data || size < RMSG_HEADER_SIZE || size > RIN_I18N_MAX_FILE_SIZE)
+        return RIN_I18N_INVALID;
     if (bytes[0] != 'R' || bytes[1] != 'M' ||
         bytes[2] != 'S' || bytes[3] != 'G' ||
         read_u16(bytes + 4u) != RIN_I18N_RMSG_VERSION ||
