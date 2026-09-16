@@ -22,6 +22,19 @@ static size_t text_length(const char* text) {
     return length;
 }
 
+static int text_length_bounded(const char* text, size_t limit,
+                               size_t* length_out) {
+    size_t index;
+    if (!text || !length_out) return 0;
+    for (index = 0u; index < limit; ++index) {
+        if (text[index] == '\0') {
+            *length_out = index;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int text_equal(const char* lhs, const char* rhs) {
     size_t index = 0u;
     if (!lhs || !rhs) return 0;
@@ -267,43 +280,110 @@ const char* rin_i18n_plural(const RinI18nCatalog* catalog,
     return rin_i18n_get(catalog, domain, composite, fallback);
 }
 
+static int rin_i18n_format_failure(char* output, int status) {
+    if (output) output[0] = '\0';
+    return status;
+}
+
+static int rin_i18n_format_append(char* output, size_t capacity,
+                                  size_t* written, const char* source,
+                                  size_t source_length) {
+    size_t index;
+    if (!output || !written || source == NULL ||
+        *written >= capacity || source_length >= capacity - *written)
+        return 0;
+    for (index = 0u; index < source_length; ++index)
+        output[(*written)++] = source[index];
+    return 1;
+}
+
 int rin_i18n_format(char* output, size_t capacity, const char* pattern,
                     const RinI18nArg* args, size_t arg_count) {
     size_t input = 0u;
     size_t written = 0u;
-    if (!output || capacity == 0u || !pattern) return RIN_I18N_INVALID;
-    while (pattern[input] != '\0') {
-        if (pattern[input] == '{' && pattern[input + 1u] != '{') {
-            size_t name_start = ++input;
+    size_t pattern_length = 0u;
+    size_t arg_index;
+    if (!output || capacity == 0u || !pattern ||
+        arg_count > RIN_I18N_MAX_FORMAT_ARGS ||
+        (arg_count != 0u && !args))
+        return rin_i18n_format_failure(output, RIN_I18N_INVALID);
+    output[0] = '\0';
+    if (!text_length_bounded(pattern, RIN_I18N_MAX_FORMAT_PATTERN_BYTES,
+                             &pattern_length))
+        return rin_i18n_format_failure(output, RIN_I18N_INVALID);
+    for (arg_index = 0u; arg_index < arg_count; ++arg_index) {
+        size_t ignored_length;
+        if (!args[arg_index].name || !args[arg_index].value ||
+            !text_length_bounded(args[arg_index].name,
+                                 RIN_I18N_MAX_FORMAT_ARG_NAME_BYTES,
+                                 &ignored_length) ||
+            !text_length_bounded(args[arg_index].value,
+                                 RIN_I18N_MAX_FORMAT_ARG_VALUE_BYTES,
+                                 &ignored_length))
+            return rin_i18n_format_failure(output, RIN_I18N_INVALID);
+    }
+    while (input < pattern_length) {
+        if (pattern[input] == '{') {
+            size_t name_start;
             size_t name_length;
-            size_t arg_index;
             const char* replacement = (const char*)0;
-            while (pattern[input] && pattern[input] != '}') input++;
-            if (pattern[input] != '}') return RIN_I18N_INVALID;
+            size_t replacement_length = 0u;
+            if (input + 1u < pattern_length && pattern[input + 1u] == '{') {
+                if (!rin_i18n_format_append(output, capacity, &written,
+                                            "{", 1u))
+                    return rin_i18n_format_failure(output, RIN_I18N_NO_SPACE);
+                input += 2u;
+                continue;
+            }
+            name_start = ++input;
+            while (input < pattern_length && pattern[input] != '}') {
+                if (pattern[input] == '{')
+                    return rin_i18n_format_failure(output, RIN_I18N_INVALID);
+                ++input;
+            }
+            if (input >= pattern_length || input == name_start)
+                return rin_i18n_format_failure(output, RIN_I18N_INVALID);
             name_length = input - name_start;
             for (arg_index = 0u; arg_index < arg_count; ++arg_index) {
-                size_t candidate_length = text_length(args[arg_index].name);
+                size_t candidate_length = 0u;
                 size_t compare;
-                if (candidate_length != name_length) continue;
+                if (!text_length_bounded(args[arg_index].name,
+                                         RIN_I18N_MAX_FORMAT_ARG_NAME_BYTES,
+                                         &candidate_length) ||
+                    candidate_length != name_length)
+                    continue;
                 for (compare = 0u; compare < name_length; ++compare) {
                     if (args[arg_index].name[compare] !=
                         pattern[name_start + compare]) break;
                 }
                 if (compare == name_length) {
                     replacement = args[arg_index].value;
+                    (void)text_length_bounded(
+                        replacement, RIN_I18N_MAX_FORMAT_ARG_VALUE_BYTES,
+                        &replacement_length);
                     break;
                 }
             }
-            if (!replacement) return RIN_I18N_NOT_FOUND;
-            for (arg_index = 0u; replacement[arg_index] != '\0'; ++arg_index) {
-                if (written + 1u >= capacity) return RIN_I18N_NO_SPACE;
-                output[written++] = replacement[arg_index];
-            }
-            input++;
+            if (!replacement)
+                return rin_i18n_format_failure(output, RIN_I18N_NOT_FOUND);
+            if (!rin_i18n_format_append(output, capacity, &written,
+                                        replacement, replacement_length))
+                return rin_i18n_format_failure(output, RIN_I18N_NO_SPACE);
+            ++input;
             continue;
         }
-        if (written + 1u >= capacity) return RIN_I18N_NO_SPACE;
-        output[written++] = pattern[input++];
+        if (pattern[input] == '}') {
+            if (input + 1u >= pattern_length || pattern[input + 1u] != '}')
+                return rin_i18n_format_failure(output, RIN_I18N_INVALID);
+            if (!rin_i18n_format_append(output, capacity, &written, "}", 1u))
+                return rin_i18n_format_failure(output, RIN_I18N_NO_SPACE);
+            input += 2u;
+            continue;
+        }
+        if (!rin_i18n_format_append(output, capacity, &written,
+                                    pattern + input, 1u))
+            return rin_i18n_format_failure(output, RIN_I18N_NO_SPACE);
+        ++input;
     }
     output[written] = '\0';
     return (int)written;

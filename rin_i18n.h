@@ -12,6 +12,10 @@ extern "C" {
 
 #define RIN_I18N_RMSG_VERSION 1u
 #define RIN_I18N_MAX_FILE_SIZE (4u * 1024u * 1024u)
+#define RIN_I18N_MAX_FORMAT_PATTERN_BYTES (64u * 1024u)
+#define RIN_I18N_MAX_FORMAT_ARGS 64u
+#define RIN_I18N_MAX_FORMAT_ARG_NAME_BYTES 128u
+#define RIN_I18N_MAX_FORMAT_ARG_VALUE_BYTES (64u * 1024u)
 
 enum {
     RIN_I18N_OK = 0,
@@ -64,6 +68,8 @@ const char* rin_i18n_get(const RinI18nCatalog* catalog,
 const char* rin_i18n_plural(const RinI18nCatalog* catalog,
                             const char* domain, const char* key,
                             uint64_t count, const char* fallback);
+/* Expands bounded {name} substitutions; {{ and }} emit literal braces.
+ * The output is failure-atomic: any error clears output when available. */
 int rin_i18n_format(char* output, size_t capacity, const char* pattern,
                     const RinI18nArg* args, size_t arg_count);
 
