@@ -15,13 +15,6 @@ static uint32_t read_u32(const uint8_t* p) {
            ((uint32_t)p[2] << 16u) | ((uint32_t)p[3] << 24u);
 }
 
-static size_t text_length(const char* text) {
-    size_t length = 0u;
-    if (!text) return 0u;
-    while (text[length] != '\0') length++;
-    return length;
-}
-
 static int text_length_bounded(const char* text, size_t limit,
                                size_t* length_out) {
     size_t index;
@@ -36,10 +29,17 @@ static int text_length_bounded(const char* text, size_t limit,
 }
 
 static int text_equal(const char* lhs, const char* rhs) {
-    size_t index = 0u;
-    if (!lhs || !rhs) return 0;
-    while (lhs[index] && rhs[index] && lhs[index] == rhs[index]) index++;
-    return lhs[index] == rhs[index];
+    size_t lhs_length;
+    size_t rhs_length;
+    size_t index;
+    if (!text_length_bounded(lhs, RIN_I18N_MAX_FILE_SIZE, &lhs_length) ||
+        !text_length_bounded(rhs, RIN_I18N_MAX_FILE_SIZE, &rhs_length) ||
+        lhs_length != rhs_length)
+        return 0;
+    for (index = 0u; index < lhs_length; ++index) {
+        if (lhs[index] != rhs[index]) return 0;
+    }
+    return 1;
 }
 
 static int range_valid(size_t size, uint32_t offset, uint32_t length) {
@@ -65,10 +65,13 @@ static int pool_string(const RinI18nCatalog* catalog, uint32_t offset,
 
 uint32_t rin_i18n_hash(const char* text) {
     uint32_t hash = 2166136261u;
-    size_t index = 0u;
-    if (!text) return 0u;
-    while (text[index] != '\0') {
-        hash ^= (uint8_t)text[index++];
+    size_t length;
+    size_t index;
+    if (!text_length_bounded(text, RIN_I18N_MAX_LOOKUP_TEXT_BYTES,
+                             &length))
+        return 0u;
+    for (index = 0u; index < length; ++index) {
+        hash ^= (uint8_t)text[index];
         hash *= 16777619u;
     }
     return hash;
@@ -231,7 +234,13 @@ const char* rin_i18n_get(const RinI18nCatalog* catalog,
     uint32_t low = 0u;
     uint32_t high;
     uint32_t index;
-    if (!catalog || !domain || !key) return fallback;
+    size_t ignored_length;
+    if (!catalog ||
+        !text_length_bounded(domain, RIN_I18N_MAX_LOOKUP_TEXT_BYTES,
+                             &ignored_length) ||
+        !text_length_bounded(key, RIN_I18N_MAX_LOOKUP_TEXT_BYTES,
+                             &ignored_length))
+        return fallback;
     wanted = rin_i18n_hash(domain);
     wanted ^= rin_i18n_hash(key) + 0x9E3779B9u + (wanted << 6u) + (wanted >> 2u);
     high = catalog->entry_count;
@@ -264,15 +273,17 @@ const char* rin_i18n_plural(const RinI18nCatalog* catalog,
                             uint64_t count, const char* fallback) {
     char composite[192];
     const char* suffix = ".other";
-    size_t length = text_length(key);
-    size_t suffix_length;
+    size_t length;
+    size_t suffix_length = sizeof(".other") - 1u;
     size_t index;
+    if (!text_length_bounded(key, RIN_I18N_MAX_LOOKUP_TEXT_BYTES, &length))
+        return fallback;
     if (catalog && ((catalog->plural_rule == 1u && count == 1u) ||
                     (catalog->plural_rule == 2u && count <= 1u))) {
         suffix = ".one";
+        suffix_length = sizeof(".one") - 1u;
     }
-    suffix_length = text_length(suffix);
-    if (!key || length + suffix_length + 1u > sizeof(composite)) return fallback;
+    if (length > sizeof(composite) - suffix_length - 1u) return fallback;
     for (index = 0u; index < length; ++index) composite[index] = key[index];
     for (index = 0u; index < suffix_length; ++index)
         composite[length + index] = suffix[index];
