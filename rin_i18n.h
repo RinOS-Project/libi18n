@@ -53,6 +53,10 @@ extern "C" {
  * and many respectively; visible fractions and all remaining integers are
  * other. */
 #define RIN_I18N_PLURAL_RULE_IRISH 12u
+/* Hebrew-like rule: integer 1 is one, integer 2 is two, non-zero multiples
+ * of 10 are many, visible fractions are other, and all other integers are
+ * other. */
+#define RIN_I18N_PLURAL_RULE_HEBREW 13u
 
 enum {
     RIN_I18N_OK = 0,
