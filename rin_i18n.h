@@ -27,6 +27,9 @@ extern "C" {
 #define RIN_I18N_PLURAL_RULE_ONE_FEW 3u
 #define RIN_I18N_PLURAL_RULE_ONE_FEW_MANY 4u
 #define RIN_I18N_PLURAL_RULE_ARABIC 5u
+/* Czech/Slovak-like rule: integer 1 is one, integers 2..4 are few,
+ * visible-fraction values are many, and all remaining integers are other. */
+#define RIN_I18N_PLURAL_RULE_ONE_FEW_MANY_V 6u
 
 enum {
     RIN_I18N_OK = 0,
