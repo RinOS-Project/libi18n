@@ -30,6 +30,10 @@ extern "C" {
 /* Czech/Slovak-like rule: integer 1 is one, integers 2..4 are few,
  * visible-fraction values are many, and all remaining integers are other. */
 #define RIN_I18N_PLURAL_RULE_ONE_FEW_MANY_V 6u
+/* Polish-like rule: integer 1 is one, 2..4 are few outside the 12..14
+ * modulo-100 exception, integer zero/five-or-more forms are many, and
+ * visible fractions are other. */
+#define RIN_I18N_PLURAL_RULE_POLISH 7u
 
 enum {
     RIN_I18N_OK = 0,
