@@ -34,6 +34,10 @@ extern "C" {
  * modulo-100 exception, integer zero/five-or-more forms are many, and
  * visible fractions are other. */
 #define RIN_I18N_PLURAL_RULE_POLISH 7u
+/* Slovenian-like rule: integer modulo-100 1 is one, 2 is two, 3..4
+ * are few, visible-fraction values are few, and all remaining integers
+ * are other. */
+#define RIN_I18N_PLURAL_RULE_SLOVENIAN 8u
 
 enum {
     RIN_I18N_OK = 0,
