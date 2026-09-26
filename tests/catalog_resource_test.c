@@ -49,6 +49,22 @@ static size_t build_rmsg(uint8_t* bytes, size_t capacity) {
     return size;
 }
 
+static size_t duplicate_rmsg(uint8_t* bytes, size_t capacity,
+                             const uint8_t* source, size_t source_size) {
+    const size_t strings_offset = 104u;
+    const size_t size = source_size + 20u;
+    assert(capacity >= size && source_size >= 84u);
+    memcpy(bytes, source, 64u);
+    memcpy(bytes + 64u, source + 64u, 20u);
+    memcpy(bytes + 84u, source + 64u, 20u);
+    memcpy(bytes + strings_offset, source + 84u, source_size - 84u);
+    put32(bytes + 8u, (uint32_t)size);
+    put32(bytes + 24u, 2u);
+    put32(bytes + 32u, (uint32_t)strings_offset);
+    put32(bytes + 12u, rin_i18n_crc32(bytes + 64u, size - 64u));
+    return size;
+}
+
 static RinResourceCatalogV1 make_catalog(
     RinResourceCatalogEntryV1* entry, const uint8_t* bytes, size_t size)
 {
@@ -77,6 +93,7 @@ int main(void) {
     RinResourceCatalogEntryV1 entry;
     RinResourceCatalogV1 resources;
     RinI18nCatalog catalog;
+    uint8_t duplicate[256];
     uint64_t storage_size = UINT64_MAX;
     const size_t source_size = build_rmsg(source, sizeof(source));
 
@@ -87,6 +104,12 @@ int main(void) {
     assert(storage_size == source_size &&
            strcmp(rin_i18n_get(&catalog, "common", "hello", "fallback"),
                   "Hello") == 0);
+
+    assert(rin_i18n_catalog_open(
+               &catalog, duplicate, duplicate_rmsg(
+                   duplicate, sizeof(duplicate), source, source_size)) ==
+           RIN_I18N_CORRUPT);
+    assert(catalog.data == NULL && catalog.size == 0u);
 
     storage_size = UINT64_MAX;
     assert(rin_i18n_catalog_open_resource(

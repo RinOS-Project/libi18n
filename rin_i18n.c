@@ -42,6 +42,22 @@ static int text_equal(const char* lhs, const char* rhs) {
     return 1;
 }
 
+static int text_compare(const char* lhs, const char* rhs) {
+    size_t lhs_length;
+    size_t rhs_length;
+    size_t index;
+    if (!text_length_bounded(lhs, RIN_I18N_MAX_FILE_SIZE, &lhs_length) ||
+        !text_length_bounded(rhs, RIN_I18N_MAX_FILE_SIZE, &rhs_length))
+        return 0;
+    for (index = 0u; index < lhs_length && index < rhs_length; ++index) {
+        if ((uint8_t)lhs[index] < (uint8_t)rhs[index]) return -1;
+        if ((uint8_t)lhs[index] > (uint8_t)rhs[index]) return 1;
+    }
+    if (lhs_length < rhs_length) return -1;
+    if (lhs_length > rhs_length) return 1;
+    return 0;
+}
+
 static int range_valid(size_t size, uint32_t offset, uint32_t length) {
     return (size_t)offset <= size && (size_t)length <= size - (size_t)offset;
 }
@@ -110,6 +126,8 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     uint32_t locale_length;
     uint32_t plural_rule;
     uint32_t previous_hash = 0u;
+    const char* previous_domain = (const char*)0;
+    const char* previous_key = (const char*)0;
     uint32_t index;
     if (!catalog) return RIN_I18N_INVALID;
     /* Direct callers must not retain a previously valid catalog when a new
@@ -150,6 +168,8 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     catalog->locale_offset = locale_offset;
     catalog->locale_length = locale_length;
     catalog->plural_rule = plural_rule;
+    /* The generator orders records by hash, domain, and key.  Requiring the
+     * same order here makes duplicate keys and ambiguous lookup impossible. */
     for (index = 0u; index < entry_count; ++index) {
         const uint8_t* entry = bytes + entries_offset + index * RMSG_ENTRY_SIZE;
         uint32_t hash = read_u32(entry);
@@ -167,9 +187,19 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
             !rin_unicode_validate_utf8(domain, domain_len, (size_t*)0) ||
             !rin_unicode_validate_utf8(key, key_len, (size_t*)0) ||
             !rin_unicode_validate_utf8(value, value_len, (size_t*)0)) {
+            memset(catalog, 0, sizeof(*catalog));
+            return RIN_I18N_CORRUPT;
+        }
+        if (index != 0u && hash == previous_hash &&
+            (text_compare(domain, previous_domain) < 0 ||
+             (text_compare(domain, previous_domain) == 0 &&
+              text_compare(key, previous_key) <= 0))) {
+            memset(catalog, 0, sizeof(*catalog));
             return RIN_I18N_CORRUPT;
         }
         previous_hash = hash;
+        previous_domain = domain;
+        previous_key = key;
     }
     return RIN_I18N_OK;
 }
