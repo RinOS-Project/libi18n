@@ -38,6 +38,10 @@ extern "C" {
  * are few, visible-fraction values are few, and all remaining integers
  * are other. */
 #define RIN_I18N_PLURAL_RULE_SLOVENIAN 8u
+/* Romanian-like rule: integer 1 is one, integer zero or modulo-100
+ * 1..19 is few, visible-fraction values are many, and the remaining
+ * integers are other. */
+#define RIN_I18N_PLURAL_RULE_ROMANIAN 9u
 
 enum {
     RIN_I18N_OK = 0,
