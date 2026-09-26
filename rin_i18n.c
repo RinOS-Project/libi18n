@@ -133,16 +133,18 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             suffix = ".few";
         break;
     case RIN_I18N_PLURAL_RULE_ONE_FEW_MANY:
-        if (operands.visible_fraction_digits == 0u && mod10 == 1u &&
+        /* Russian-like cardinal rules classify every visible fraction as
+         * many; only integers participate in the one/few modulo tests. */
+        if (operands.visible_fraction_digits != 0u)
+            suffix = ".many";
+        else if (mod10 == 1u &&
             mod100 != 11u)
             suffix = ".one";
-        else if (operands.visible_fraction_digits == 0u &&
-                 mod10 >= 2u && mod10 <= 4u &&
+        else if (mod10 >= 2u && mod10 <= 4u &&
                  (mod100 < 12u || mod100 > 14u))
             suffix = ".few";
-        else if (operands.visible_fraction_digits == 0u &&
-                 (mod10 == 0u || mod10 >= 5u ||
-                  (mod100 >= 11u && mod100 <= 14u)))
+        else if (mod10 == 0u || mod10 >= 5u ||
+                 (mod100 >= 11u && mod100 <= 14u))
             suffix = ".many";
         break;
     case RIN_I18N_PLURAL_RULE_ARABIC:
