@@ -1,0 +1,137 @@
+/* SPDX-License-Identifier: MIT */
+
+#include "../rin_i18n.h"
+
+#include <assert.h>
+#include <string.h>
+
+static void put32(uint8_t* bytes, uint32_t value) {
+    bytes[0] = (uint8_t)value;
+    bytes[1] = (uint8_t)(value >> 8u);
+    bytes[2] = (uint8_t)(value >> 16u);
+    bytes[3] = (uint8_t)(value >> 24u);
+}
+
+static uint32_t pool_offset(const char* pool, size_t pool_size,
+                            const char* value) {
+    const size_t length = strlen(value);
+    size_t offset;
+    for (offset = 0u; offset + length < pool_size; ++offset) {
+        if (memcmp(pool + offset, value, length) == 0 &&
+            pool[offset + length] == '\0')
+            return (uint32_t)offset;
+    }
+    assert(0 && "missing string pool value");
+    return 0u;
+}
+
+static uint32_t entry_hash(const char* key) {
+    const uint32_t domain = rin_i18n_hash("common");
+    return domain ^ (rin_i18n_hash(key) + 0x9E3779B9u +
+                     (domain << 6u) + (domain >> 2u));
+}
+
+static size_t build_catalog(uint8_t* bytes, size_t capacity,
+                            uint32_t plural_rule) {
+    static const char pool[] =
+        "en-US\0common\0items.zero\0zero\0items.one\0one\0"
+        "items.two\0two\0items.few\0few\0items.many\0many\0"
+        "items.other\0other\0";
+    static const char* keys[] = {
+        "items.zero", "items.one", "items.two", "items.few",
+        "items.many", "items.other"
+    };
+    static const char* values[] = {"zero", "one", "two", "few", "many",
+                                   "other"};
+    unsigned order[sizeof(keys) / sizeof(keys[0])];
+    uint8_t entries[sizeof(keys) / sizeof(keys[0]) * 20u];
+    const uint32_t entries_offset = 64u;
+    const uint32_t strings_offset = entries_offset + (uint32_t)sizeof(entries);
+    const size_t size = strings_offset + sizeof(pool);
+    size_t index;
+    size_t compare;
+    assert(capacity >= size);
+    memset(bytes, 0, size);
+    memcpy(bytes, "RMSG", 4u);
+    bytes[4] = 1u;
+    bytes[6] = 64u;
+    put32(bytes + 8u, (uint32_t)size);
+    put32(bytes + 20u, 5u);
+    put32(bytes + 24u, (uint32_t)(sizeof(keys) / sizeof(keys[0])));
+    put32(bytes + 28u, entries_offset);
+    put32(bytes + 32u, strings_offset);
+    put32(bytes + 36u, (uint32_t)sizeof(pool));
+    put32(bytes + 40u, plural_rule);
+    memcpy(bytes + strings_offset, pool, sizeof(pool));
+    for (index = 0u; index < sizeof(order) / sizeof(order[0]); ++index)
+        order[index] = (unsigned)index;
+    for (index = 0u; index < sizeof(order) / sizeof(order[0]); ++index) {
+        for (compare = index + 1u;
+             compare < sizeof(order) / sizeof(order[0]); ++compare) {
+            uint32_t left = entry_hash(keys[order[index]]);
+            uint32_t right = entry_hash(keys[order[compare]]);
+            if (left > right ||
+                (left == right && strcmp(keys[order[index]],
+                                         keys[order[compare]]) > 0)) {
+                unsigned swap = order[index];
+                order[index] = order[compare];
+                order[compare] = swap;
+            }
+        }
+    }
+    for (index = 0u; index < sizeof(order) / sizeof(order[0]); ++index) {
+        const char* key = keys[order[index]];
+        const char* value = values[order[index]];
+        uint8_t* entry = entries + index * 20u;
+        put32(entry, entry_hash(key));
+        put32(entry + 4u, pool_offset(pool, sizeof(pool), "common"));
+        put32(entry + 8u, pool_offset(pool, sizeof(pool), key));
+        put32(entry + 12u, pool_offset(pool, sizeof(pool), value));
+        put32(entry + 16u, (uint32_t)strlen(value));
+    }
+    memcpy(bytes + entries_offset, entries, sizeof(entries));
+    put32(bytes + 12u, rin_i18n_crc32(bytes + 64u, size - 64u));
+    return size;
+}
+
+static void expect(const RinI18nCatalog* catalog, const char* number,
+                   const char* expected) {
+    assert(strcmp(rin_i18n_plural_decimal(catalog, "common", "items",
+                                           number, "fallback"),
+                  expected) == 0);
+}
+
+int main(void) {
+    uint8_t bytes[1024];
+    RinI18nCatalog catalog;
+    size_t size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_ONE);
+
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "1", "one");
+    expect(&catalog, "1.0", "other");
+    expect(&catalog, "0.5", "other");
+    expect(&catalog, "01", "one");
+    expect(&catalog, "1e0", "fallback");
+    expect(&catalog, ".5", "fallback");
+    expect(&catalog, "1.", "fallback");
+    expect(&catalog, "+1", "fallback");
+    expect(&catalog, "18446744073709551616", "fallback");
+
+    size = build_catalog(bytes, sizeof(bytes),
+                         RIN_I18N_PLURAL_RULE_ONE_FEW_MANY);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "1", "one");
+    expect(&catalog, "2", "few");
+    expect(&catalog, "0", "many");
+    expect(&catalog, "1.0", "other");
+    expect(&catalog, "2.00", "other");
+
+    size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_ARABIC);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0", "zero");
+    expect(&catalog, "2", "two");
+    expect(&catalog, "3", "few");
+    expect(&catalog, "11", "many");
+    expect(&catalog, "3.0", "other");
+    return 0;
+}

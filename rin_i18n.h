@@ -17,9 +17,10 @@ extern "C" {
 #define RIN_I18N_MAX_FORMAT_ARG_NAME_BYTES 128u
 #define RIN_I18N_MAX_FORMAT_ARG_VALUE_BYTES (64u * 1024u)
 #define RIN_I18N_MAX_LOOKUP_TEXT_BYTES (64u * 1024u)
+#define RIN_I18N_MAX_PLURAL_NUMBER_BYTES 128u
 
-/* RMSG plural rules are bounded integer selectors.  They are catalog-format
- * values, not a claim of complete CLDR coverage. */
+/* RMSG plural rules are bounded integer/decimal selectors.  They are
+ * catalog-format values, not a claim of complete CLDR coverage. */
 #define RIN_I18N_PLURAL_RULE_OTHER 0u
 #define RIN_I18N_PLURAL_RULE_ONE 1u
 #define RIN_I18N_PLURAL_RULE_ZERO_ONE 2u
@@ -78,6 +79,14 @@ const char* rin_i18n_get(const RinI18nCatalog* catalog,
 const char* rin_i18n_plural(const RinI18nCatalog* catalog,
                             const char* domain, const char* key,
                             uint64_t count, const char* fallback);
+/* Selects a plural entry from a non-negative ASCII decimal literal.  The
+ * bounded parser preserves visible fraction digits, so 1 and 1.0 can select
+ * different CLDR-style categories.  Signs, exponents, malformed decimals,
+ * and integer overflow are rejected and return fallback. */
+const char* rin_i18n_plural_decimal(const RinI18nCatalog* catalog,
+                                    const char* domain, const char* key,
+                                    const char* number,
+                                    const char* fallback);
 /* Expands bounded {name} substitutions; {{ and }} emit literal braces.
  * The output is failure-atomic: any error clears output when available. */
 int rin_i18n_format(char* output, size_t capacity, const char* pattern,

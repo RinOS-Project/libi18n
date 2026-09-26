@@ -66,6 +66,128 @@ static int plural_rule_valid(uint32_t rule) {
     return rule <= RIN_I18N_PLURAL_RULE_ARABIC;
 }
 
+typedef struct RinI18nPluralOperands {
+    uint64_t integer;
+    uint32_t visible_fraction_digits;
+} RinI18nPluralOperands;
+
+static int plural_number_parse(const char* number,
+                               RinI18nPluralOperands* operands) {
+    size_t length;
+    size_t index;
+    size_t dot = (size_t)-1;
+    uint64_t integer = 0u;
+    if (!operands ||
+        !text_length_bounded(number, RIN_I18N_MAX_PLURAL_NUMBER_BYTES,
+                             &length) ||
+        length == 0u)
+        return 0;
+    for (index = 0u; index < length; ++index) {
+        if (number[index] == '.') {
+            if (dot != (size_t)-1 || index == 0u || index + 1u >= length)
+                return 0;
+            dot = index;
+        }
+    }
+    if (dot == (size_t)-1) dot = length;
+    for (index = 0u; index < dot; ++index) {
+        uint64_t digit;
+        if (number[index] < '0' || number[index] > '9') return 0;
+        digit = (uint64_t)(number[index] - '0');
+        if (integer > (UINT64_MAX - digit) / 10u) return 0;
+        integer = integer * 10u + digit;
+    }
+    if (dot != length) {
+        for (index = dot + 1u; index < length; ++index) {
+            if (number[index] < '0' || number[index] > '9') return 0;
+        }
+    }
+    operands->integer = integer;
+    operands->visible_fraction_digits =
+        dot == length ? 0u : (uint32_t)(length - dot - 1u);
+    return 1;
+}
+
+static const char* plural_suffix(const RinI18nCatalog* catalog,
+                                 RinI18nPluralOperands operands) {
+    const char* suffix = ".other";
+    uint64_t mod10 = operands.integer % 10u;
+    uint64_t mod100 = operands.integer % 100u;
+    if (!catalog) return suffix;
+    switch (catalog->plural_rule) {
+    case RIN_I18N_PLURAL_RULE_ONE:
+        if (operands.visible_fraction_digits == 0u &&
+            operands.integer == 1u) suffix = ".one";
+        break;
+    case RIN_I18N_PLURAL_RULE_ZERO_ONE:
+        if (operands.visible_fraction_digits == 0u &&
+            operands.integer <= 1u) suffix = ".one";
+        break;
+    case RIN_I18N_PLURAL_RULE_ONE_FEW:
+        if (operands.visible_fraction_digits == 0u &&
+            operands.integer == 1u) suffix = ".one";
+        else if (operands.visible_fraction_digits == 0u &&
+                 operands.integer >= 2u && operands.integer <= 4u)
+            suffix = ".few";
+        break;
+    case RIN_I18N_PLURAL_RULE_ONE_FEW_MANY:
+        if (operands.visible_fraction_digits == 0u && mod10 == 1u &&
+            mod100 != 11u)
+            suffix = ".one";
+        else if (operands.visible_fraction_digits == 0u &&
+                 mod10 >= 2u && mod10 <= 4u &&
+                 (mod100 < 12u || mod100 > 14u))
+            suffix = ".few";
+        else if (operands.visible_fraction_digits == 0u &&
+                 (mod10 == 0u || mod10 >= 5u ||
+                  (mod100 >= 11u && mod100 <= 14u)))
+            suffix = ".many";
+        break;
+    case RIN_I18N_PLURAL_RULE_ARABIC:
+        if (operands.visible_fraction_digits == 0u &&
+            operands.integer == 0u)
+            suffix = ".zero";
+        else if (operands.visible_fraction_digits == 0u &&
+                 operands.integer == 1u)
+            suffix = ".one";
+        else if (operands.visible_fraction_digits == 0u &&
+                 operands.integer == 2u)
+            suffix = ".two";
+        else if (operands.visible_fraction_digits == 0u &&
+                 mod100 >= 3u && mod100 <= 10u)
+            suffix = ".few";
+        else if (operands.visible_fraction_digits == 0u &&
+                 mod100 >= 11u && mod100 <= 99u)
+            suffix = ".many";
+        break;
+    case RIN_I18N_PLURAL_RULE_OTHER:
+        break;
+    default:
+        return (const char*)0;
+    }
+    return suffix;
+}
+
+static const char* plural_lookup(const RinI18nCatalog* catalog,
+                                 const char* domain, const char* key,
+                                 const char* suffix,
+                                 const char* fallback) {
+    char composite[192];
+    size_t length;
+    size_t suffix_length;
+    size_t index;
+    if (!suffix ||
+        !text_length_bounded(key, RIN_I18N_MAX_LOOKUP_TEXT_BYTES, &length))
+        return fallback;
+    suffix_length = strlen(suffix);
+    if (length > sizeof(composite) - suffix_length - 1u) return fallback;
+    for (index = 0u; index < length; ++index) composite[index] = key[index];
+    for (index = 0u; index < suffix_length; ++index)
+        composite[length + index] = suffix[index];
+    composite[length + suffix_length] = '\0';
+    return rin_i18n_get(catalog, domain, composite, fallback);
+}
+
 static int pool_string(const RinI18nCatalog* catalog, uint32_t offset,
                        const char** output, size_t* length) {
     size_t cursor;
@@ -308,56 +430,19 @@ const char* rin_i18n_get(const RinI18nCatalog* catalog,
 const char* rin_i18n_plural(const RinI18nCatalog* catalog,
                             const char* domain, const char* key,
                             uint64_t count, const char* fallback) {
-    char composite[192];
-    const char* suffix = ".other";
-    size_t length;
-    size_t suffix_length = sizeof(".other") - 1u;
-    size_t index;
-    uint64_t mod10;
-    uint64_t mod100;
-    if (!text_length_bounded(key, RIN_I18N_MAX_LOOKUP_TEXT_BYTES, &length))
-        return fallback;
-    if (catalog) {
-        mod10 = count % 10u;
-        mod100 = count % 100u;
-        switch (catalog->plural_rule) {
-        case RIN_I18N_PLURAL_RULE_ONE:
-            if (count == 1u) suffix = ".one";
-            break;
-        case RIN_I18N_PLURAL_RULE_ZERO_ONE:
-            if (count <= 1u) suffix = ".one";
-            break;
-        case RIN_I18N_PLURAL_RULE_ONE_FEW:
-            if (count == 1u) suffix = ".one";
-            else if (count >= 2u && count <= 4u) suffix = ".few";
-            break;
-        case RIN_I18N_PLURAL_RULE_ONE_FEW_MANY:
-            if (mod10 == 1u && mod100 != 11u) suffix = ".one";
-            else if (mod10 >= 2u && mod10 <= 4u &&
-                     (mod100 < 12u || mod100 > 14u)) suffix = ".few";
-            else if (mod10 == 0u || mod10 >= 5u ||
-                     (mod100 >= 11u && mod100 <= 14u)) suffix = ".many";
-            break;
-        case RIN_I18N_PLURAL_RULE_ARABIC:
-            if (count == 0u) suffix = ".zero";
-            else if (count == 1u) suffix = ".one";
-            else if (count == 2u) suffix = ".two";
-            else if (mod100 >= 3u && mod100 <= 10u) suffix = ".few";
-            else if (mod100 >= 11u && mod100 <= 99u) suffix = ".many";
-            break;
-        case RIN_I18N_PLURAL_RULE_OTHER:
-            break;
-        default:
-            return fallback;
-        }
-        suffix_length = strlen(suffix);
-    }
-    if (length > sizeof(composite) - suffix_length - 1u) return fallback;
-    for (index = 0u; index < length; ++index) composite[index] = key[index];
-    for (index = 0u; index < suffix_length; ++index)
-        composite[length + index] = suffix[index];
-    composite[length + suffix_length] = '\0';
-    return rin_i18n_get(catalog, domain, composite, fallback);
+    RinI18nPluralOperands operands = {count, 0u};
+    return plural_lookup(catalog, domain, key, plural_suffix(catalog, operands),
+                         fallback);
+}
+
+const char* rin_i18n_plural_decimal(const RinI18nCatalog* catalog,
+                                    const char* domain, const char* key,
+                                    const char* number,
+                                    const char* fallback) {
+    RinI18nPluralOperands operands;
+    if (!plural_number_parse(number, &operands)) return fallback;
+    return plural_lookup(catalog, domain, key,
+                         plural_suffix(catalog, operands), fallback);
 }
 
 static int rin_i18n_format_failure(char* output, int status) {
