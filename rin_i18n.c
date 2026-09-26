@@ -46,6 +46,10 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
     return (size_t)offset <= size && (size_t)length <= size - (size_t)offset;
 }
 
+static int plural_rule_valid(uint32_t rule) {
+    return rule <= RIN_I18N_PLURAL_RULE_ARABIC;
+}
+
 static int pool_string(const RinI18nCatalog* catalog, uint32_t offset,
                        const char** output, size_t* length) {
     size_t cursor;
@@ -104,6 +108,7 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     uint32_t strings_size;
     uint32_t locale_offset;
     uint32_t locale_length;
+    uint32_t plural_rule;
     uint32_t previous_hash = 0u;
     uint32_t index;
     if (!catalog) return RIN_I18N_INVALID;
@@ -125,11 +130,13 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     entries_offset = read_u32(bytes + 28u);
     strings_offset = read_u32(bytes + 32u);
     strings_size = read_u32(bytes + 36u);
+    plural_rule = read_u32(bytes + 40u);
     if (file_size != size || entries_offset < RMSG_HEADER_SIZE ||
         entry_count > (RIN_I18N_MAX_FILE_SIZE / RMSG_ENTRY_SIZE) ||
         !range_valid(size, entries_offset, entry_count * RMSG_ENTRY_SIZE) ||
         !range_valid(size, strings_offset, strings_size) ||
         locale_offset >= strings_size || locale_length >= strings_size - locale_offset ||
+        !plural_rule_valid(plural_rule) ||
         rin_i18n_crc32(bytes + RMSG_HEADER_SIZE,
                        size - RMSG_HEADER_SIZE) != expected_crc) {
         return RIN_I18N_CORRUPT;
@@ -142,7 +149,7 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     catalog->strings_size = strings_size;
     catalog->locale_offset = locale_offset;
     catalog->locale_length = locale_length;
-    catalog->plural_rule = read_u32(bytes + 40u);
+    catalog->plural_rule = plural_rule;
     for (index = 0u; index < entry_count; ++index) {
         const uint8_t* entry = bytes + entries_offset + index * RMSG_ENTRY_SIZE;
         uint32_t hash = read_u32(entry);
@@ -276,12 +283,44 @@ const char* rin_i18n_plural(const RinI18nCatalog* catalog,
     size_t length;
     size_t suffix_length = sizeof(".other") - 1u;
     size_t index;
+    uint64_t mod10;
+    uint64_t mod100;
     if (!text_length_bounded(key, RIN_I18N_MAX_LOOKUP_TEXT_BYTES, &length))
         return fallback;
-    if (catalog && ((catalog->plural_rule == 1u && count == 1u) ||
-                    (catalog->plural_rule == 2u && count <= 1u))) {
-        suffix = ".one";
-        suffix_length = sizeof(".one") - 1u;
+    if (catalog) {
+        mod10 = count % 10u;
+        mod100 = count % 100u;
+        switch (catalog->plural_rule) {
+        case RIN_I18N_PLURAL_RULE_ONE:
+            if (count == 1u) suffix = ".one";
+            break;
+        case RIN_I18N_PLURAL_RULE_ZERO_ONE:
+            if (count <= 1u) suffix = ".one";
+            break;
+        case RIN_I18N_PLURAL_RULE_ONE_FEW:
+            if (count == 1u) suffix = ".one";
+            else if (count >= 2u && count <= 4u) suffix = ".few";
+            break;
+        case RIN_I18N_PLURAL_RULE_ONE_FEW_MANY:
+            if (mod10 == 1u && mod100 != 11u) suffix = ".one";
+            else if (mod10 >= 2u && mod10 <= 4u &&
+                     (mod100 < 12u || mod100 > 14u)) suffix = ".few";
+            else if (mod10 == 0u || mod10 >= 5u ||
+                     (mod100 >= 11u && mod100 <= 14u)) suffix = ".many";
+            break;
+        case RIN_I18N_PLURAL_RULE_ARABIC:
+            if (count == 0u) suffix = ".zero";
+            else if (count == 1u) suffix = ".one";
+            else if (count == 2u) suffix = ".two";
+            else if (mod100 >= 3u && mod100 <= 10u) suffix = ".few";
+            else if (mod100 >= 11u && mod100 <= 99u) suffix = ".many";
+            break;
+        case RIN_I18N_PLURAL_RULE_OTHER:
+            break;
+        default:
+            return fallback;
+        }
+        suffix_length = strlen(suffix);
     }
     if (length > sizeof(composite) - suffix_length - 1u) return fallback;
     for (index = 0u; index < length; ++index) composite[index] = key[index];

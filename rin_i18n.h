@@ -18,6 +18,15 @@ extern "C" {
 #define RIN_I18N_MAX_FORMAT_ARG_VALUE_BYTES (64u * 1024u)
 #define RIN_I18N_MAX_LOOKUP_TEXT_BYTES (64u * 1024u)
 
+/* RMSG plural rules are bounded integer selectors.  They are catalog-format
+ * values, not a claim of complete CLDR coverage. */
+#define RIN_I18N_PLURAL_RULE_OTHER 0u
+#define RIN_I18N_PLURAL_RULE_ONE 1u
+#define RIN_I18N_PLURAL_RULE_ZERO_ONE 2u
+#define RIN_I18N_PLURAL_RULE_ONE_FEW 3u
+#define RIN_I18N_PLURAL_RULE_ONE_FEW_MANY 4u
+#define RIN_I18N_PLURAL_RULE_ARABIC 5u
+
 enum {
     RIN_I18N_OK = 0,
     RIN_I18N_INVALID = -1,
