@@ -42,6 +42,10 @@ extern "C" {
  * 1..19 is few, visible-fraction values are many, and the remaining
  * integers are other. */
 #define RIN_I18N_PLURAL_RULE_ROMANIAN 9u
+/* Lithuanian-like rule: integer values ending in 1 outside the 11..19
+ * modulo-100 range are one, other integers ending in 2..9 outside that
+ * range are few, visible-fraction values are many, and the rest are other. */
+#define RIN_I18N_PLURAL_RULE_LITHUANIAN 10u
 
 enum {
     RIN_I18N_OK = 0,

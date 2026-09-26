@@ -188,5 +188,18 @@ int main(void) {
     expect(&catalog, "101", "few");
     expect(&catalog, "1.0", "many");
     expect(&catalog, "2.50", "many");
+
+    size = build_catalog(bytes, sizeof(bytes),
+                         RIN_I18N_PLURAL_RULE_LITHUANIAN);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "1", "one");
+    expect(&catalog, "11", "other");
+    expect(&catalog, "21", "one");
+    expect(&catalog, "2", "few");
+    expect(&catalog, "10", "other");
+    expect(&catalog, "12", "other");
+    expect(&catalog, "0", "other");
+    expect(&catalog, "1.0", "many");
+    expect(&catalog, "2.50", "many");
     return 0;
 }
