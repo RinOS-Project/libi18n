@@ -46,6 +46,13 @@ extern "C" {
  * modulo-100 range are one, other integers ending in 2..9 outside that
  * range are few, visible-fraction values are many, and the rest are other. */
 #define RIN_I18N_PLURAL_RULE_LITHUANIAN 10u
+/* Ukrainian-like rule: integer endings select one/few/many with the
+ * 11..14 modulo-100 exceptions, while visible-fraction values are other. */
+#define RIN_I18N_PLURAL_RULE_UKRAINIAN 11u
+/* Irish-like rule: integers 1, 2, 3..6, and 7..10 select one, two, few,
+ * and many respectively; visible fractions and all remaining integers are
+ * other. */
+#define RIN_I18N_PLURAL_RULE_IRISH 12u
 
 enum {
     RIN_I18N_OK = 0,
