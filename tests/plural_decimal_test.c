@@ -117,6 +117,12 @@ int main(void) {
     expect(&catalog, "+1", "fallback");
     expect(&catalog, "18446744073709551616", "fallback");
 
+    size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_ZERO_ONE);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0.5", "one");
+    expect(&catalog, "1.0", "one");
+    expect(&catalog, "2.0", "other");
+
     size = build_catalog(bytes, sizeof(bytes),
                          RIN_I18N_PLURAL_RULE_ONE_FEW_MANY);
     assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);

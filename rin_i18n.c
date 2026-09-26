@@ -120,8 +120,10 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             operands.integer == 1u) suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_ZERO_ONE:
-        if (operands.visible_fraction_digits == 0u &&
-            operands.integer <= 1u) suffix = ".one";
+        /* The French-like zero-one rule is based on the CLDR integer
+         * operand, not on visible fraction count: 0.5 and 1.0 therefore
+         * remain in the one category while 2.0 does not. */
+        if (operands.integer <= 1u) suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_ONE_FEW:
         if (operands.visible_fraction_digits == 0u &&
