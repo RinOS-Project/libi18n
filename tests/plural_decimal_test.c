@@ -260,5 +260,18 @@ int main(void) {
     expect(&catalog, "20", "zero");
     expect(&catalog, "21", "one");
     expect(&catalog, "1.0", "other");
+
+    size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_BALKAN);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0", "other");
+    expect(&catalog, "1", "one");
+    expect(&catalog, "11", "other");
+    expect(&catalog, "21", "one");
+    expect(&catalog, "2", "few");
+    expect(&catalog, "4", "few");
+    expect(&catalog, "12", "other");
+    expect(&catalog, "14", "other");
+    expect(&catalog, "22", "few");
+    expect(&catalog, "1.0", "other");
     return 0;
 }

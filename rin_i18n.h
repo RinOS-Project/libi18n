@@ -65,6 +65,10 @@ extern "C" {
  * integer zero or a value ending in zero or in 11..19 is zero, and visible
  * fractions are other. */
 #define RIN_I18N_PLURAL_RULE_LATVIAN 15u
+/* Balkan-like rule: integer values ending in 1 outside the 11 modulo-100
+ * range are one, values ending in 2..4 outside the 12..14 range are few,
+ * and all remaining integers and visible fractions are other. */
+#define RIN_I18N_PLURAL_RULE_BALKAN 16u
 
 enum {
     RIN_I18N_OK = 0,

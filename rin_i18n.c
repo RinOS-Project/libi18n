@@ -63,7 +63,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_LATVIAN;
+    return rule <= RIN_I18N_PLURAL_RULE_BALKAN;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -282,6 +282,17 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
         } else if (operands.integer == 0u || mod10 == 0u ||
                    (mod100 >= 11u && mod100 <= 19u)) {
             suffix = ".zero";
+        }
+        break;
+    case RIN_I18N_PLURAL_RULE_BALKAN:
+        if (operands.visible_fraction_digits != 0u) {
+            break;
+        }
+        if (mod10 == 1u && mod100 != 11u) {
+            suffix = ".one";
+        } else if (mod10 >= 2u && mod10 <= 4u &&
+                   (mod100 < 12u || mod100 > 14u)) {
+            suffix = ".few";
         }
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:
