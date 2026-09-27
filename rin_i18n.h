@@ -57,6 +57,10 @@ extern "C" {
  * of 10 are many, visible fractions are other, and all other integers are
  * other. */
 #define RIN_I18N_PLURAL_RULE_HEBREW 13u
+/* Maltese-like rule: integer 1 is one, integer 2 is two, zero and
+ * integers modulo 100 in 3..10 are few, integers modulo 100 in 11..19
+ * are many, and visible-fraction values are other. */
+#define RIN_I18N_PLURAL_RULE_MALTESE 14u
 
 enum {
     RIN_I18N_OK = 0,
