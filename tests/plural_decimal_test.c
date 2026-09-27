@@ -249,5 +249,16 @@ int main(void) {
     expect(&catalog, "20", "other");
     expect(&catalog, "103", "few");
     expect(&catalog, "1.0", "other");
+
+    size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_LATVIAN);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0", "zero");
+    expect(&catalog, "1", "one");
+    expect(&catalog, "10", "zero");
+    expect(&catalog, "11", "zero");
+    expect(&catalog, "19", "zero");
+    expect(&catalog, "20", "zero");
+    expect(&catalog, "21", "one");
+    expect(&catalog, "1.0", "other");
     return 0;
 }

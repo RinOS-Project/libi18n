@@ -61,6 +61,10 @@ extern "C" {
  * integers modulo 100 in 3..10 are few, integers modulo 100 in 11..19
  * are many, and visible-fraction values are other. */
 #define RIN_I18N_PLURAL_RULE_MALTESE 14u
+/* Latvian-like rule: integer 1 outside the 11 modulo-100 range is one,
+ * integer zero or a value ending in zero or in 11..19 is zero, and visible
+ * fractions are other. */
+#define RIN_I18N_PLURAL_RULE_LATVIAN 15u
 
 enum {
     RIN_I18N_OK = 0,
