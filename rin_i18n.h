@@ -86,6 +86,9 @@ extern "C" {
 /* Danish-like rule: integer 1 and values with non-zero visible fraction
  * whose integer part is 0 or 1 select one; all other values select other. */
 #define RIN_I18N_PLURAL_RULE_DANISH 20u
+/* Finnish-like rule: only the integer value 1 selects one; visible
+ * fractions, including 1.0, and all other integers select other. */
+#define RIN_I18N_PLURAL_RULE_FINNISH 21u
 
 enum {
     RIN_I18N_OK = 0,
