@@ -63,12 +63,13 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_BALKAN;
+    return rule <= RIN_I18N_PLURAL_RULE_WELSH;
 }
 
 typedef struct RinI18nPluralOperands {
     uint64_t integer;
     uint32_t visible_fraction_digits;
+    uint32_t fraction_nonzero;
 } RinI18nPluralOperands;
 
 static int plural_number_parse(const char* number,
@@ -82,6 +83,7 @@ static int plural_number_parse(const char* number,
                              &length) ||
         length == 0u)
         return 0;
+    operands->fraction_nonzero = 0u;
     for (index = 0u; index < length; ++index) {
         if (number[index] == '.') {
             if (dot != (size_t)-1 || index == 0u || index + 1u >= length)
@@ -100,6 +102,7 @@ static int plural_number_parse(const char* number,
     if (dot != length) {
         for (index = dot + 1u; index < length; ++index) {
             if (number[index] < '0' || number[index] > '9') return 0;
+            if (number[index] != '0') operands->fraction_nonzero = 1u;
         }
     }
     operands->integer = integer;
@@ -293,6 +296,22 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
         } else if (mod10 >= 2u && mod10 <= 4u &&
                    (mod100 < 12u || mod100 > 14u)) {
             suffix = ".few";
+        }
+        break;
+    case RIN_I18N_PLURAL_RULE_WELSH:
+        if (operands.fraction_nonzero != 0u) {
+            break;
+        }
+        if (operands.integer == 0u) {
+            suffix = ".zero";
+        } else if (operands.integer == 1u) {
+            suffix = ".one";
+        } else if (operands.integer == 2u) {
+            suffix = ".two";
+        } else if (operands.integer == 3u) {
+            suffix = ".few";
+        } else if (operands.integer == 6u) {
+            suffix = ".many";
         }
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:
@@ -565,7 +584,7 @@ const char* rin_i18n_get(const RinI18nCatalog* catalog,
 const char* rin_i18n_plural(const RinI18nCatalog* catalog,
                             const char* domain, const char* key,
                             uint64_t count, const char* fallback) {
-    RinI18nPluralOperands operands = {count, 0u};
+    RinI18nPluralOperands operands = {count, 0u, 0u};
     return plural_lookup(catalog, domain, key, plural_suffix(catalog, operands),
                          fallback);
 }

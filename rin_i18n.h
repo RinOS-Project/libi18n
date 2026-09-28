@@ -69,6 +69,10 @@ extern "C" {
  * range are one, values ending in 2..4 outside the 12..14 range are few,
  * and all remaining integers and visible fractions are other. */
 #define RIN_I18N_PLURAL_RULE_BALKAN 16u
+/* Welsh-like rule: numeric values 0, 1, 2, 3, and 6 select zero, one, two,
+ * few, and many.  A fraction with non-zero digits is other; a trailing-zero
+ * fraction remains numerically equal to its integer value. */
+#define RIN_I18N_PLURAL_RULE_WELSH 17u
 
 enum {
     RIN_I18N_OK = 0,
