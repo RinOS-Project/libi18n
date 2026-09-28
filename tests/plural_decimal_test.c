@@ -302,5 +302,21 @@ int main(void) {
     expect(&catalog, "1.0", "one");
     expect(&catalog, "12.00", "two");
     expect(&catalog, "3.5", "other");
+
+    size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_MANX);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0", "few");
+    expect(&catalog, "1", "one");
+    expect(&catalog, "2", "two");
+    expect(&catalog, "3", "other");
+    expect(&catalog, "11", "one");
+    expect(&catalog, "12", "two");
+    expect(&catalog, "20", "few");
+    expect(&catalog, "21", "one");
+    expect(&catalog, "40", "few");
+    expect(&catalog, "80", "few");
+    expect(&catalog, "100", "few");
+    expect(&catalog, "1.0", "many");
+    expect(&catalog, "0.5", "many");
     return 0;
 }

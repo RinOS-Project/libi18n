@@ -78,6 +78,11 @@ extern "C" {
  * other.  A fraction with non-zero digits is other; trailing-zero fractions
  * remain numerically equal to their integer value. */
 #define RIN_I18N_PLURAL_RULE_SCOTTISH_GAELIC 18u
+/* Manx-like rule: integer values ending in 1 select one, values ending in
+ * 2 select two, integers congruent to 0, 20, 40, 60, or 80 modulo 100 select
+ * few, visible-fraction values select many, and all other integers select
+ * other. */
+#define RIN_I18N_PLURAL_RULE_MANX 19u
 
 enum {
     RIN_I18N_OK = 0,
