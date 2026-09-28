@@ -42,13 +42,9 @@ static int text_equal(const char* lhs, const char* rhs) {
     return 1;
 }
 
-static int text_compare(const char* lhs, const char* rhs) {
-    size_t lhs_length;
-    size_t rhs_length;
+static int text_compare_slices(const char* lhs, size_t lhs_length,
+                               const char* rhs, size_t rhs_length) {
     size_t index;
-    if (!text_length_bounded(lhs, RIN_I18N_MAX_FILE_SIZE, &lhs_length) ||
-        !text_length_bounded(rhs, RIN_I18N_MAX_FILE_SIZE, &rhs_length))
-        return 0;
     for (index = 0u; index < lhs_length && index < rhs_length; ++index) {
         if ((uint8_t)lhs[index] < (uint8_t)rhs[index]) return -1;
         if ((uint8_t)lhs[index] > (uint8_t)rhs[index]) return 1;
@@ -56,6 +52,24 @@ static int text_compare(const char* lhs, const char* rhs) {
     if (lhs_length < rhs_length) return -1;
     if (lhs_length > rhs_length) return 1;
     return 0;
+}
+
+static uint32_t hash_slice(const char* text, size_t length) {
+    uint32_t hash = 2166136261u;
+    size_t index;
+    for (index = 0u; index < length; ++index) {
+        hash ^= (uint8_t)text[index];
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+static uint32_t entry_hash_slices(const char* domain, size_t domain_length,
+                                  const char* key, size_t key_length) {
+    const uint32_t domain_hash = hash_slice(domain, domain_length);
+    const uint32_t key_hash = hash_slice(key, key_length);
+    return domain_hash ^ (key_hash + 0x9E3779B9u +
+                          (domain_hash << 6u) + (domain_hash >> 2u));
 }
 
 static int range_valid(size_t size, uint32_t offset, uint32_t length) {
@@ -435,6 +449,8 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     uint32_t previous_hash = 0u;
     const char* previous_domain = (const char*)0;
     const char* previous_key = (const char*)0;
+    size_t previous_domain_len = 0u;
+    size_t previous_key_len = 0u;
     uint32_t index;
     if (!catalog) return RIN_I18N_INVALID;
     /* Direct callers must not retain a previously valid catalog when a new
@@ -459,6 +475,8 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     if (file_size != size || entries_offset < RMSG_HEADER_SIZE ||
         entry_count > (RIN_I18N_MAX_FILE_SIZE / RMSG_ENTRY_SIZE) ||
         !range_valid(size, entries_offset, entry_count * RMSG_ENTRY_SIZE) ||
+        (size_t)strings_offset <
+            (size_t)entries_offset + (size_t)entry_count * RMSG_ENTRY_SIZE ||
         !range_valid(size, strings_offset, strings_size) ||
         locale_offset >= strings_size || locale_length >= strings_size - locale_offset ||
         !plural_rule_valid(plural_rule) ||
@@ -497,16 +515,25 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
             memset(catalog, 0, sizeof(*catalog));
             return RIN_I18N_CORRUPT;
         }
+        if (hash != entry_hash_slices(domain, domain_len, key, key_len)) {
+            memset(catalog, 0, sizeof(*catalog));
+            return RIN_I18N_CORRUPT;
+        }
         if (index != 0u && hash == previous_hash &&
-            (text_compare(domain, previous_domain) < 0 ||
-             (text_compare(domain, previous_domain) == 0 &&
-              text_compare(key, previous_key) <= 0))) {
+            (text_compare_slices(domain, domain_len, previous_domain,
+                                 previous_domain_len) < 0 ||
+             (text_compare_slices(domain, domain_len, previous_domain,
+                                  previous_domain_len) == 0 &&
+              text_compare_slices(key, key_len, previous_key,
+                                  previous_key_len) <= 0))) {
             memset(catalog, 0, sizeof(*catalog));
             return RIN_I18N_CORRUPT;
         }
         previous_hash = hash;
         previous_domain = domain;
         previous_key = key;
+        previous_domain_len = domain_len;
+        previous_key_len = key_len;
     }
     return RIN_I18N_OK;
 }

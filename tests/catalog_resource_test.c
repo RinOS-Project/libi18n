@@ -65,6 +65,25 @@ static size_t duplicate_rmsg(uint8_t* bytes, size_t capacity,
     return size;
 }
 
+static size_t malformed_layout_rmsg(uint8_t* bytes, size_t capacity,
+                                    const uint8_t* source, size_t source_size) {
+    assert(capacity >= source_size);
+    memcpy(bytes, source, source_size);
+    /* The string pool must not overlap the entry table. */
+    put32(bytes + 32u, 64u);
+    put32(bytes + 12u, rin_i18n_crc32(bytes + 64u, source_size - 64u));
+    return source_size;
+}
+
+static size_t malformed_hash_rmsg(uint8_t* bytes, size_t capacity,
+                                  const uint8_t* source, size_t source_size) {
+    assert(capacity >= source_size);
+    memcpy(bytes, source, source_size);
+    bytes[64u] ^= 1u;
+    put32(bytes + 12u, rin_i18n_crc32(bytes + 64u, source_size - 64u));
+    return source_size;
+}
+
 static RinResourceCatalogV1 make_catalog(
     RinResourceCatalogEntryV1* entry, const uint8_t* bytes, size_t size)
 {
@@ -94,6 +113,7 @@ int main(void) {
     RinResourceCatalogV1 resources;
     RinI18nCatalog catalog;
     uint8_t duplicate[256];
+    uint8_t malformed[256];
     uint64_t storage_size = UINT64_MAX;
     const size_t source_size = build_rmsg(source, sizeof(source));
 
@@ -108,6 +128,18 @@ int main(void) {
     assert(rin_i18n_catalog_open(
                &catalog, duplicate, duplicate_rmsg(
                    duplicate, sizeof(duplicate), source, source_size)) ==
+           RIN_I18N_CORRUPT);
+    assert(catalog.data == NULL && catalog.size == 0u);
+
+    assert(rin_i18n_catalog_open(
+               &catalog, malformed, malformed_layout_rmsg(
+                   malformed, sizeof(malformed), source, source_size)) ==
+           RIN_I18N_CORRUPT);
+    assert(catalog.data == NULL && catalog.size == 0u);
+
+    assert(rin_i18n_catalog_open(
+               &catalog, malformed, malformed_hash_rmsg(
+                   malformed, sizeof(malformed), source, source_size)) ==
            RIN_I18N_CORRUPT);
     assert(catalog.data == NULL && catalog.size == 0u);
 
