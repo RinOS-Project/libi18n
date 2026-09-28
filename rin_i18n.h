@@ -73,6 +73,11 @@ extern "C" {
  * few, and many.  A fraction with non-zero digits is other; a trailing-zero
  * fraction remains numerically equal to its integer value. */
 #define RIN_I18N_PLURAL_RULE_WELSH 17u
+/* Scottish-Gaelic-like rule: numeric values 1 and 11 select one, 2 and 12
+ * select two, 3..10 and 13..19 select few, and all other values select
+ * other.  A fraction with non-zero digits is other; trailing-zero fractions
+ * remain numerically equal to their integer value. */
+#define RIN_I18N_PLURAL_RULE_SCOTTISH_GAELIC 18u
 
 enum {
     RIN_I18N_OK = 0,

@@ -285,5 +285,22 @@ int main(void) {
     expect(&catalog, "1.0", "one");
     expect(&catalog, "6.00", "many");
     expect(&catalog, "1.5", "other");
+
+    size = build_catalog(bytes, sizeof(bytes),
+                         RIN_I18N_PLURAL_RULE_SCOTTISH_GAELIC);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0", "other");
+    expect(&catalog, "1", "one");
+    expect(&catalog, "2", "two");
+    expect(&catalog, "3", "few");
+    expect(&catalog, "10", "few");
+    expect(&catalog, "11", "one");
+    expect(&catalog, "12", "two");
+    expect(&catalog, "13", "few");
+    expect(&catalog, "19", "few");
+    expect(&catalog, "20", "other");
+    expect(&catalog, "1.0", "one");
+    expect(&catalog, "12.00", "two");
+    expect(&catalog, "3.5", "other");
     return 0;
 }
