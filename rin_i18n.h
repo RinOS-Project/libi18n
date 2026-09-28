@@ -83,6 +83,9 @@ extern "C" {
  * few, visible-fraction values select many, and all other integers select
  * other. */
 #define RIN_I18N_PLURAL_RULE_MANX 19u
+/* Danish-like rule: integer 1 and values with non-zero visible fraction
+ * whose integer part is 0 or 1 select one; all other values select other. */
+#define RIN_I18N_PLURAL_RULE_DANISH 20u
 
 enum {
     RIN_I18N_OK = 0,
