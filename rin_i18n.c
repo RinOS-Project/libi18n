@@ -502,6 +502,16 @@ int rin_i18n_catalog_open(RinI18nCatalog* catalog,
     catalog->locale_offset = locale_offset;
     catalog->locale_length = locale_length;
     catalog->plural_rule = plural_rule;
+    {
+        const char* locale;
+        size_t locale_actual;
+        if (!pool_string(catalog, locale_offset, &locale, &locale_actual) ||
+            locale_actual != locale_length ||
+            !rin_unicode_validate_utf8(locale, locale_actual, (size_t*)0)) {
+            memset(catalog, 0, sizeof(*catalog));
+            return RIN_I18N_CORRUPT;
+        }
+    }
     /* The generator orders records by hash, domain, and key.  Requiring the
      * same order here makes duplicate keys and ambiguous lookup impossible. */
     for (index = 0u; index < entry_count; ++index) {
