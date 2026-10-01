@@ -585,14 +585,17 @@ int rin_i18n_catalog_open_resource(
 {
     RinResourceCatalogStatus resource_status;
     uint64_t loaded_size = 0u;
+    uint64_t load_capacity;
     int status;
     if (catalog != NULL) memset(catalog, 0, sizeof(*catalog));
     if (storage_size != NULL) *storage_size = 0u;
     if (catalog == NULL || resources == NULL || storage_size == NULL ||
         resource_id == 0u) return RIN_I18N_INVALID;
+    load_capacity = storage_capacity < (uint64_t)RIN_I18N_MAX_FILE_SIZE
+        ? storage_capacity : (uint64_t)RIN_I18N_MAX_FILE_SIZE;
     resource_status = rin_resource_catalog_load(
         resources, RIN_RESOURCE_CATALOG_TYPE_LOCALIZATION, resource_id,
-        read_path, context, storage, storage_capacity, &loaded_size);
+        read_path, context, storage, load_capacity, &loaded_size);
     if (resource_status != RIN_RESOURCE_CATALOG_OK)
         return resource_status_to_i18n(resource_status);
     if (loaded_size > (uint64_t)SIZE_MAX)

@@ -17,6 +17,27 @@ static void put32(uint8_t* p, uint32_t value) {
     p[3] = (uint8_t)(value >> 24u);
 }
 
+typedef struct PathContext {
+    const uint8_t* source;
+    size_t source_size;
+    uint64_t observed_capacity;
+} PathContext;
+
+static RinResourceCatalogStatus read_path(
+    void* context, const char* path, uint32_t path_size, uint8_t* output,
+    uint64_t output_capacity, uint64_t* output_size)
+{
+    PathContext* state = (PathContext*)context;
+    (void)path;
+    (void)path_size;
+    state->observed_capacity = output_capacity;
+    if (output_size == NULL || output_capacity < state->source_size)
+        return RIN_RESOURCE_CATALOG_BUFFER_TOO_SMALL;
+    memcpy(output, state->source, state->source_size);
+    *output_size = state->source_size;
+    return RIN_RESOURCE_CATALOG_OK;
+}
+
 static size_t build_rmsg(uint8_t* bytes, size_t capacity) {
     static const char pool[] = "en-US\0common\0hello\0Hello\0";
     const uint32_t entries_offset = 64u;
@@ -106,6 +127,28 @@ static RinResourceCatalogV1 make_catalog(
     return catalog;
 }
 
+static RinResourceCatalogV1 make_path_catalog(
+    RinResourceCatalogEntryV1* entry, const char* path)
+{
+    RinResourceCatalogV1 catalog;
+    memset(entry, 0, sizeof(*entry));
+    entry->struct_size = sizeof(*entry);
+    entry->version = RIN_RESOURCE_CATALOG_VERSION_1;
+    entry->type = RIN_RESOURCE_CATALOG_TYPE_LOCALIZATION;
+    entry->resource_id = 17u;
+    entry->flags = RIN_RESOURCE_CATALOG_FLAG_IMMUTABLE |
+                   RIN_RESOURCE_CATALOG_SOURCE_PATH;
+    entry->path = path;
+    entry->path_size = (uint32_t)strlen(path);
+    memset(&catalog, 0, sizeof(catalog));
+    catalog.struct_size = sizeof(catalog);
+    catalog.version = RIN_RESOURCE_CATALOG_VERSION_1;
+    catalog.entries = entry;
+    catalog.entry_count = 1u;
+    catalog.generation = 1u;
+    return catalog;
+}
+
 int main(void) {
     uint8_t source[256];
     uint8_t storage[256];
@@ -114,6 +157,8 @@ int main(void) {
     RinI18nCatalog catalog;
     uint8_t duplicate[256];
     uint8_t malformed[256];
+    static uint8_t oversized_storage[RIN_I18N_MAX_FILE_SIZE + 1u];
+    PathContext path_context;
     uint64_t storage_size = UINT64_MAX;
     const size_t source_size = build_rmsg(source, sizeof(source));
 
@@ -124,6 +169,20 @@ int main(void) {
     assert(storage_size == source_size &&
            strcmp(rin_i18n_get(&catalog, "common", "hello", "fallback"),
                   "Hello") == 0);
+
+    path_context.source = source;
+    path_context.source_size = source_size;
+    path_context.observed_capacity = 0u;
+    resources = make_path_catalog(&entry, "/res/catalog.rmsg");
+    storage_size = UINT64_MAX;
+    assert(rin_i18n_catalog_open_resource(
+               &catalog, &resources, 17u, read_path, &path_context,
+               oversized_storage, sizeof(oversized_storage), &storage_size) ==
+           RIN_I18N_OK);
+    assert(path_context.observed_capacity == RIN_I18N_MAX_FILE_SIZE);
+    assert(storage_size == source_size);
+
+    resources = make_catalog(&entry, source, source_size);
 
     assert(rin_i18n_catalog_open(
                &catalog, duplicate, duplicate_rmsg(
