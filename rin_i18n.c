@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_FINNISH;
+    return rule <= RIN_I18N_PLURAL_RULE_ICELANDIC;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -362,6 +362,10 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
     case RIN_I18N_PLURAL_RULE_FINNISH:
         if (operands.visible_fraction_digits == 0u &&
             operands.integer == 1u)
+            suffix = ".one";
+        break;
+    case RIN_I18N_PLURAL_RULE_ICELANDIC:
+        if (mod10 == 1u && mod100 != 11u)
             suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:

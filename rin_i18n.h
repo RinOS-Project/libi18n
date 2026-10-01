@@ -89,6 +89,9 @@ extern "C" {
 /* Finnish-like rule: only the integer value 1 selects one; visible
  * fractions, including 1.0, and all other integers select other. */
 #define RIN_I18N_PLURAL_RULE_FINNISH 21u
+/* Icelandic-like rule: the integer operand ends in 1 outside the 11
+ * modulo-100 exception; visible fractions use the same integer operand. */
+#define RIN_I18N_PLURAL_RULE_ICELANDIC 22u
 
 enum {
     RIN_I18N_OK = 0,
