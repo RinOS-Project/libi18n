@@ -365,7 +365,10 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_ICELANDIC:
-        if (mod10 == 1u && mod100 != 11u)
+        /* CLDR Icelandic: every non-zero visible fraction (t != 0) is
+         * one; integer values additionally use the 1-ending rule. */
+        if (operands.fraction_nonzero != 0u ||
+            (mod10 == 1u && mod100 != 11u))
             suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:

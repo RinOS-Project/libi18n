@@ -345,6 +345,9 @@ int main(void) {
     expect(&catalog, "21", "one");
     expect(&catalog, "1.0", "one");
     expect(&catalog, "1.5", "one");
+    expect(&catalog, "2.5", "one");
+    expect(&catalog, "2.50", "one");
+    expect(&catalog, "11.5", "one");
     expect(&catalog, "11.0", "other");
     return 0;
 }
