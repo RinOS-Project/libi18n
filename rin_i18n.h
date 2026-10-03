@@ -92,6 +92,11 @@ extern "C" {
 /* Icelandic-like rule: the integer operand ends in 1 outside the 11
  * modulo-100 exception; visible fractions use the same integer operand. */
 #define RIN_I18N_PLURAL_RULE_ICELANDIC 22u
+/* Portuguese-like cardinal rule: integer operands 0..1 are one, exact
+ * non-zero integer multiples of 1,000,000 are many, and all other bounded
+ * decimal literals are other.  The many branch covers the e=0 form of the
+ * CLDR rule; exponent notation is intentionally outside this parser. */
+#define RIN_I18N_PLURAL_RULE_PORTUGUESE 23u
 
 enum {
     RIN_I18N_OK = 0,

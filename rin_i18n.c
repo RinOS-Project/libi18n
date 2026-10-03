@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_ICELANDIC;
+    return rule <= RIN_I18N_PLURAL_RULE_PORTUGUESE;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -370,6 +370,18 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
         if (operands.fraction_nonzero != 0u ||
             (mod10 == 1u && mod100 != 11u))
             suffix = ".one";
+        break;
+    case RIN_I18N_PLURAL_RULE_PORTUGUESE:
+        /* CLDR Portuguese: i=0..1 is one.  For the bounded decimal syntax
+         * accepted here, the many condition's exponent is zero, so only an
+         * exact non-zero million multiple can select many. */
+        if (operands.integer <= 1u) {
+            suffix = ".one";
+        } else if (operands.visible_fraction_digits == 0u &&
+                   operands.integer != 0u &&
+                   operands.integer % 1000000u == 0u) {
+            suffix = ".many";
+        }
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:
         break;
