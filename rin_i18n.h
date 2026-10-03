@@ -89,8 +89,9 @@ extern "C" {
 /* Finnish-like rule: only the integer value 1 selects one; visible
  * fractions, including 1.0, and all other integers select other. */
 #define RIN_I18N_PLURAL_RULE_FINNISH 21u
-/* Icelandic-like rule: the integer operand ends in 1 outside the 11
- * modulo-100 exception; visible fractions use the same integer operand. */
+/* Icelandic-like rule: with no non-zero visible fraction, the integer
+ * operand ends in 1 outside the 11 modulo-100 exception; otherwise the
+ * trimmed visible fraction operand ends in 1 outside the same exception. */
 #define RIN_I18N_PLURAL_RULE_ICELANDIC 22u
 /* Portuguese-like cardinal rule: integer operands 0..1 are one, exact
  * non-zero integer multiples of 1,000,000 are many, and all other bounded

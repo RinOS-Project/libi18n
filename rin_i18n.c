@@ -84,6 +84,7 @@ typedef struct RinI18nPluralOperands {
     uint64_t integer;
     uint32_t visible_fraction_digits;
     uint32_t fraction_nonzero;
+    uint32_t fraction_mod100;
 } RinI18nPluralOperands;
 
 static int plural_number_parse(const char* number,
@@ -91,6 +92,7 @@ static int plural_number_parse(const char* number,
     size_t length;
     size_t index;
     size_t dot = (size_t)-1;
+    size_t fraction_end;
     uint64_t integer = 0u;
     if (!operands ||
         !text_length_bounded(number, RIN_I18N_MAX_PLURAL_NUMBER_BYTES,
@@ -98,6 +100,7 @@ static int plural_number_parse(const char* number,
         length == 0u)
         return 0;
     operands->fraction_nonzero = 0u;
+    operands->fraction_mod100 = 0u;
     for (index = 0u; index < length; ++index) {
         if (number[index] == '.') {
             if (dot != (size_t)-1 || index == 0u || index + 1u >= length)
@@ -114,9 +117,18 @@ static int plural_number_parse(const char* number,
         integer = integer * 10u + digit;
     }
     if (dot != length) {
+        fraction_end = length;
+        while (fraction_end > dot + 1u && number[fraction_end - 1u] == '0')
+            --fraction_end;
         for (index = dot + 1u; index < length; ++index) {
             if (number[index] < '0' || number[index] > '9') return 0;
             if (number[index] != '0') operands->fraction_nonzero = 1u;
+        }
+        for (index = dot + 1u; index < fraction_end; ++index) {
+            operands->fraction_mod100 =
+                (operands->fraction_mod100 * 10u) +
+                (uint32_t)(number[index] - '0');
+            operands->fraction_mod100 %= 100u;
         }
     }
     operands->integer = integer;
@@ -365,10 +377,14 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_ICELANDIC:
-        /* CLDR Icelandic: every non-zero visible fraction (t != 0) is
-         * one; integer values additionally use the 1-ending rule. */
-        if (operands.fraction_nonzero != 0u ||
-            (mod10 == 1u && mod100 != 11u))
+        /* CLDR Icelandic uses i when t=0 and the trimmed visible fraction
+         * operand t otherwise.  A non-zero fraction is therefore one only
+         * when its final two digits end in 1 outside the 11 exception. */
+        if ((operands.fraction_nonzero == 0u &&
+             mod10 == 1u && mod100 != 11u) ||
+            (operands.fraction_nonzero != 0u &&
+             operands.fraction_mod100 % 10u == 1u &&
+             operands.fraction_mod100 != 11u))
             suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_PORTUGUESE:
@@ -679,7 +695,7 @@ const char* rin_i18n_get(const RinI18nCatalog* catalog,
 const char* rin_i18n_plural(const RinI18nCatalog* catalog,
                             const char* domain, const char* key,
                             uint64_t count, const char* fallback) {
-    RinI18nPluralOperands operands = {count, 0u, 0u};
+    RinI18nPluralOperands operands = {count, 0u, 0u, 0u};
     return plural_lookup(catalog, domain, key, plural_suffix(catalog, operands),
                          fallback);
 }

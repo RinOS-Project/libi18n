@@ -344,10 +344,14 @@ int main(void) {
     expect(&catalog, "11", "other");
     expect(&catalog, "21", "one");
     expect(&catalog, "1.0", "one");
-    expect(&catalog, "1.5", "one");
-    expect(&catalog, "2.5", "one");
-    expect(&catalog, "2.50", "one");
-    expect(&catalog, "11.5", "one");
+    expect(&catalog, "0.1", "one");
+    expect(&catalog, "1.01", "one");
+    expect(&catalog, "2.1", "one");
+    expect(&catalog, "1.5", "other");
+    expect(&catalog, "2.5", "other");
+    expect(&catalog, "2.50", "other");
+    expect(&catalog, "11.5", "other");
+    expect(&catalog, "1.11", "other");
     expect(&catalog, "11.0", "other");
 
     size = build_catalog(bytes, sizeof(bytes),
