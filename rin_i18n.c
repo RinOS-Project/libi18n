@@ -88,6 +88,23 @@ typedef struct RinI18nPluralOperands {
     uint32_t fraction_mod100_full;
 } RinI18nPluralOperands;
 
+/* The freestanding i686 installer does not link libgcc/compiler-rt. Keep
+ * plural-rule remainders by a small divisor in 32-bit operations so this
+ * shared runtime does not acquire an implicit __umoddi3 dependency. */
+static uint32_t plural_integer_remainder(uint64_t value, uint32_t divisor) {
+    uint32_t remainder = 0u;
+    uint32_t bit;
+    if (divisor == 0u) return 0u;
+    for (bit = 64u; bit != 0u; --bit) {
+        const uint32_t carry = remainder >> 31u;
+        remainder = (remainder << 1u) |
+                    (uint32_t)((value >> (bit - 1u)) & UINT64_C(1));
+        if (carry != 0u || remainder >= divisor)
+            remainder -= divisor;
+    }
+    return remainder;
+}
+
 static int plural_number_parse(const char* number,
                                RinI18nPluralOperands* operands) {
     size_t length;
@@ -146,9 +163,13 @@ static int plural_number_parse(const char* number,
 static const char* plural_suffix(const RinI18nCatalog* catalog,
                                  RinI18nPluralOperands operands) {
     const char* suffix = ".other";
-    uint64_t mod10 = operands.integer % 10u;
-    uint64_t mod100 = operands.integer % 100u;
+    uint32_t mod1000000;
+    uint32_t mod10;
+    uint32_t mod100;
     if (!catalog) return suffix;
+    mod1000000 = plural_integer_remainder(operands.integer, 1000000u);
+    mod100 = mod1000000 % 100u;
+    mod10 = mod100 % 10u;
     switch (catalog->plural_rule) {
     case RIN_I18N_PLURAL_RULE_ONE:
         if (operands.visible_fraction_digits == 0u &&
@@ -401,7 +422,7 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             suffix = ".one";
         } else if (operands.visible_fraction_digits == 0u &&
                    operands.integer != 0u &&
-                   operands.integer % 1000000u == 0u) {
+                   mod1000000 == 0u) {
             suffix = ".many";
         }
         break;
@@ -420,7 +441,7 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
         if (operands.fraction_nonzero != 0u)
             break;
         if (operands.integer != 0u &&
-            operands.integer % 1000000u == 0u) {
+            mod1000000 == 0u) {
             suffix = ".many";
         } else if (mod10 == 1u && mod100 != 11u && mod100 != 71u &&
                    mod100 != 91u) {
@@ -443,7 +464,7 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             suffix = ".one";
         } else if (operands.visible_fraction_digits == 0u &&
                    operands.integer != 0u &&
-                   operands.integer % 1000000u == 0u) {
+                   mod1000000 == 0u) {
             suffix = ".many";
         }
         break;
