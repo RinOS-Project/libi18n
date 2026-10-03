@@ -364,5 +364,18 @@ int main(void) {
     expect(&catalog, "1000000", "many");
     expect(&catalog, "1000000.0", "other");
     expect(&catalog, "2000000", "many");
+
+    size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_MACEDONIAN);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "1", "one");
+    expect(&catalog, "11", "other");
+    expect(&catalog, "21", "one");
+    expect(&catalog, "1.0", "other");
+    expect(&catalog, "0.1", "one");
+    expect(&catalog, "1.1", "one");
+    expect(&catalog, "2.1", "one");
+    expect(&catalog, "1.11", "other");
+    expect(&catalog, "1.10", "other");
+
     return 0;
 }
