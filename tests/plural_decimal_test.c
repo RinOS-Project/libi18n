@@ -377,5 +377,22 @@ int main(void) {
     expect(&catalog, "1.11", "other");
     expect(&catalog, "1.10", "other");
 
+    size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_BRETON);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0", "other");
+    expect(&catalog, "1", "one");
+    expect(&catalog, "21", "one");
+    expect(&catalog, "11", "other");
+    expect(&catalog, "71", "other");
+    expect(&catalog, "2", "two");
+    expect(&catalog, "12", "other");
+    expect(&catalog, "3", "few");
+    expect(&catalog, "9", "few");
+    expect(&catalog, "10", "other");
+    expect(&catalog, "19", "other");
+    expect(&catalog, "1000000", "many");
+    expect(&catalog, "1000000.0", "many");
+    expect(&catalog, "1.1", "other");
+
     return 0;
 }

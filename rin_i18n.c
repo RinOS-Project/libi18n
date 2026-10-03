@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_MACEDONIAN;
+    return rule <= RIN_I18N_PLURAL_RULE_BRETON;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -412,6 +412,28 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
              operands.fraction_mod100_full % 10u == 1u &&
              operands.fraction_mod100_full != 11u))
             suffix = ".one";
+        break;
+    case RIN_I18N_PLURAL_RULE_BRETON:
+        /* The bounded decimal grammar has no exponent operand.  A non-zero
+         * visible fraction is therefore outside this n-based subset and
+         * remains other; trailing-zero fractions retain their integer value. */
+        if (operands.fraction_nonzero != 0u)
+            break;
+        if (operands.integer != 0u &&
+            operands.integer % 1000000u == 0u) {
+            suffix = ".many";
+        } else if (mod10 == 1u && mod100 != 11u && mod100 != 71u &&
+                   mod100 != 91u) {
+            suffix = ".one";
+        } else if (mod10 == 2u && mod100 != 12u && mod100 != 72u &&
+                   mod100 != 92u) {
+            suffix = ".two";
+        } else if ((mod10 == 3u || mod10 == 4u || mod10 == 9u) &&
+                   !((mod100 >= 10u && mod100 <= 19u) ||
+                     (mod100 >= 70u && mod100 <= 79u) ||
+                     (mod100 >= 90u && mod100 <= 99u))) {
+            suffix = ".few";
+        }
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:
         break;

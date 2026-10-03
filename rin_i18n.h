@@ -102,6 +102,12 @@ extern "C" {
  * 11 modulo-100 exception are one; visible fraction digits ending in 1
  * outside the 11 exception are also one. */
 #define RIN_I18N_PLURAL_RULE_MACEDONIAN 24u
+/* Breton-like cardinal rule: exact integer values ending in 1 or 2 use
+ * one/two with Breton's 11/71/91 and 12/72/92 exceptions; ending in 3/4/9
+ * uses few outside the 10..19/70..79/90..99 ranges; non-zero million
+ * multiples use many.  Non-zero visible fractions are other in this
+ * bounded decimal selector. */
+#define RIN_I18N_PLURAL_RULE_BRETON 25u
 
 enum {
     RIN_I18N_OK = 0,
