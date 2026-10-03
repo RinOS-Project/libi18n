@@ -108,6 +108,10 @@ extern "C" {
  * multiples use many.  Non-zero visible fractions are other in this
  * bounded decimal selector. */
 #define RIN_I18N_PLURAL_RULE_BRETON 25u
+/* French-like cardinal rule: numeric values from 0 through 1 use one;
+ * exact non-zero integer multiples of 1,000,000 use many in this bounded
+ * decimal selector, while visible fractions and all other values are other. */
+#define RIN_I18N_PLURAL_RULE_FRENCH 26u
 
 enum {
     RIN_I18N_OK = 0,
