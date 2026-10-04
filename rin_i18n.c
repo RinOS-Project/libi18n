@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_SERBIAN;
+    return rule <= RIN_I18N_PLURAL_RULE_ONE_NUMERIC;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -180,6 +180,12 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
          * operand, not on visible fraction count: 0.5 and 1.0 therefore
          * remain in the one category while 2.0 does not. */
         if (operands.integer <= 1u) suffix = ".one";
+        break;
+    case RIN_I18N_PLURAL_RULE_ONE_NUMERIC:
+        /* Albanian/Bulgarian-like n=1 rules treat 1.0, 1.00, ... as one;
+         * non-zero fractions such as 1.5 remain other. */
+        if (operands.integer == 1u && operands.fraction_nonzero == 0u)
+            suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_ONE_FEW:
         if (operands.visible_fraction_digits == 0u &&

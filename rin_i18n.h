@@ -123,6 +123,10 @@ extern "C" {
  * 11..14 modulo-100 exceptions, and the visible fraction operand selects
  * the same categories when it ends in 1 or 2..4. */
 #define RIN_I18N_PLURAL_RULE_SERBIAN 29u
+/* Numeric-one cardinal rule: numeric n equal to 1 selects one, including
+ * bounded decimal literals with only trailing zeroes such as 1.0; all other
+ * bounded decimal values select other. */
+#define RIN_I18N_PLURAL_RULE_ONE_NUMERIC 30u
 
 enum {
     RIN_I18N_OK = 0,
