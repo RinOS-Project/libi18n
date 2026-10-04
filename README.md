@@ -9,8 +9,12 @@ The CMake contract tests are enabled with
 `-DRIN_I18N_BUILD_TESTS=ON`; Meson exposes the same
 `rini18n-catalog-resource` and `rini18n-plural-decimal` tests.  The resource
 test covers blob/path loading and failure-atomic catalog state, while the
-plural test covers the bounded decimal selector rules, including the CLDR
+plural test covers bounded decimal and scientific-notation selector inputs,
+including the CLDR
 Tachelhit `one`/`few`, Serbian `one`/`few`, Russian `one`/`few`/`many`,
 Albanian/Bulgarian-like numeric-one, Filipino, Sinhala, and one-two cardinal
-boundary subsets.  The selector remains a bounded
+boundary subsets.  `e`/`E` exponents are accepted only within the fixed
+128-byte input and exponent bounds; the value is normalized to the bounded
+integer/fraction operands before selection, and malformed or overflowing
+forms remain failure-closed.  The selector remains a bounded
 catalog-format contract rather than a claim of complete CLDR locale coverage.

@@ -111,8 +111,15 @@ static int plural_number_parse(const char* number,
     size_t length;
     size_t index;
     size_t dot = (size_t)-1;
+    size_t exponent_marker = (size_t)-1;
+    size_t mantissa_end;
+    size_t digit_count = 0u;
+    size_t fraction_start;
     size_t fraction_end;
+    int32_t exponent = 0;
+    int exponent_negative = 0;
     uint64_t integer = 0u;
+    char digits[RIN_I18N_MAX_PLURAL_NUMBER_BYTES];
     if (!operands ||
         !text_length_bounded(number, RIN_I18N_MAX_PLURAL_NUMBER_BYTES,
                              &length) ||
@@ -127,41 +134,119 @@ static int plural_number_parse(const char* number,
             if (dot != (size_t)-1 || index == 0u || index + 1u >= length)
                 return 0;
             dot = index;
+        } else if (number[index] == 'e' || number[index] == 'E') {
+            if (exponent_marker != (size_t)-1 || index == 0u ||
+                index + 1u >= length)
+                return 0;
+            exponent_marker = index;
         }
     }
-    if (dot == (size_t)-1) dot = length;
-    for (index = 0u; index < dot; ++index) {
-        uint64_t digit;
-        if (number[index] < '0' || number[index] > '9') return 0;
-        digit = (uint64_t)(number[index] - '0');
-        if (integer > (UINT64_MAX - digit) / 10u) return 0;
-        integer = integer * 10u + digit;
-    }
-    if (dot != length) {
-        fraction_end = length;
-        while (fraction_end > dot + 1u && number[fraction_end - 1u] == '0')
-            --fraction_end;
-        operands->fraction_is_one = number[length - 1u] == '1';
-        for (index = dot + 1u; index < length; ++index) {
+    mantissa_end = exponent_marker == (size_t)-1 ? length : exponent_marker;
+    if (exponent_marker != (size_t)-1) {
+        size_t exponent_start = exponent_marker + 1u;
+        if (number[exponent_start] == '+' || number[exponent_start] == '-') {
+            exponent_negative = number[exponent_start] == '-';
+            ++exponent_start;
+        }
+        if (exponent_start == length) return 0;
+        for (index = exponent_start; index < length; ++index) {
+            int32_t digit;
             if (number[index] < '0' || number[index] > '9') return 0;
-            if (number[index] != '0') operands->fraction_nonzero = 1u;
-            if (index + 1u < length && number[index] != '0')
+            digit = (int32_t)(number[index] - '0');
+            if (exponent > 12 ||
+                (exponent == 12 && digit > 8))
+                return 0;
+            exponent = exponent * 10 + digit;
+        }
+        if (exponent_negative) exponent = -exponent;
+    }
+    dot = (size_t)-1;
+    for (index = 0u; index < mantissa_end; ++index) {
+        if (number[index] == '.') {
+            if (dot != (size_t)-1 || index == 0u ||
+                index + 1u >= mantissa_end)
+                return 0;
+            dot = index;
+        } else {
+            if (number[index] < '0' || number[index] > '9') return 0;
+            if (digit_count >= sizeof(digits)) return 0;
+            digits[digit_count++] = number[index];
+        }
+    }
+    if (digit_count == 0u) return 0;
+    if (dot == (size_t)-1) dot = digit_count;
+    {
+        int32_t decimal_position = (int32_t)dot + exponent;
+        if (decimal_position < -(int32_t)RIN_I18N_MAX_PLURAL_NUMBER_BYTES ||
+            decimal_position >
+                (int32_t)(RIN_I18N_MAX_PLURAL_NUMBER_BYTES * 2u))
+            return 0;
+        if (decimal_position < 0) {
+            fraction_start = 0u;
+            fraction_end = digit_count;
+            operands->visible_fraction_digits =
+                (uint32_t)((size_t)(-decimal_position) + digit_count);
+            if (operands->visible_fraction_digits >=
+                RIN_I18N_MAX_PLURAL_NUMBER_BYTES)
+                return 0;
+            integer = 0u;
+        } else {
+            const size_t integer_digits =
+                (size_t)decimal_position < digit_count ?
+                    (size_t)decimal_position : digit_count;
+            const size_t trailing_zeroes =
+                (size_t)decimal_position > digit_count ?
+                    (size_t)decimal_position - digit_count : 0u;
+            for (index = 0u; index < integer_digits; ++index) {
+                uint64_t digit = (uint64_t)(digits[index] - '0');
+                if (integer > (UINT64_MAX - digit) / 10u) return 0;
+                integer = integer * 10u + digit;
+            }
+            for (index = 0u; index < trailing_zeroes; ++index) {
+                if (integer > UINT64_MAX / 10u) return 0;
+                integer *= 10u;
+            }
+            fraction_start = integer_digits;
+            fraction_end = digit_count;
+            operands->visible_fraction_digits =
+                (uint32_t)(fraction_end - fraction_start);
+        }
+        operands->fraction_is_one = operands->visible_fraction_digits != 0u;
+        if (decimal_position < 0) {
+            size_t leading_zeroes = (size_t)(-decimal_position);
+            for (index = 0u; index < leading_zeroes; ++index) {
+                operands->fraction_mod100_full =
+                    operands->fraction_mod100_full * 10u;
+                operands->fraction_mod100_full %= 100u;
+            }
+        }
+        for (index = fraction_start; index < fraction_end; ++index) {
+            const uint32_t digit = (uint32_t)(digits[index] - '0');
+            if (digit != 0u) operands->fraction_nonzero = 1u;
+            if (digit != 0u &&
+                (index + 1u < fraction_end || digit != 1u)) {
+                operands->fraction_is_one = 0u;
+            }
+            if (index + 1u == fraction_end && digit == 0u)
                 operands->fraction_is_one = 0u;
             operands->fraction_mod100_full =
-                (operands->fraction_mod100_full * 10u) +
-                (uint32_t)(number[index] - '0');
+                (operands->fraction_mod100_full * 10u) + digit;
             operands->fraction_mod100_full %= 100u;
         }
-        for (index = dot + 1u; index < fraction_end; ++index) {
-            operands->fraction_mod100 =
-                (operands->fraction_mod100 * 10u) +
-                (uint32_t)(number[index] - '0');
-            operands->fraction_mod100 %= 100u;
+        if (operands->visible_fraction_digits != 0u) {
+            size_t trimmed_end = fraction_end;
+            while (trimmed_end > fraction_start &&
+                   digits[trimmed_end - 1u] == '0')
+                --trimmed_end;
+            for (index = fraction_start; index < trimmed_end; ++index) {
+                operands->fraction_mod100 =
+                    (operands->fraction_mod100 * 10u) +
+                    (uint32_t)(digits[index] - '0');
+                operands->fraction_mod100 %= 100u;
+            }
         }
     }
     operands->integer = integer;
-    operands->visible_fraction_digits =
-        dot == length ? 0u : (uint32_t)(length - dot - 1u);
     return 1;
 }
 

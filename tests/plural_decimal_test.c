@@ -111,7 +111,13 @@ int main(void) {
     expect(&catalog, "1.0", "other");
     expect(&catalog, "0.5", "other");
     expect(&catalog, "01", "one");
-    expect(&catalog, "1e0", "fallback");
+    expect(&catalog, "1e0", "one");
+    expect(&catalog, "1e+0", "one");
+    expect(&catalog, "1e1", "other");
+    expect(&catalog, "1e-1", "other");
+    expect(&catalog, "1.0e1", "other");
+    expect(&catalog, "1e", "fallback");
+    expect(&catalog, "1e999", "fallback");
     expect(&catalog, ".5", "fallback");
     expect(&catalog, "1.", "fallback");
     expect(&catalog, "+1", "fallback");
@@ -120,8 +126,10 @@ int main(void) {
     size = build_catalog(bytes, sizeof(bytes), RIN_I18N_PLURAL_RULE_ZERO_ONE);
     assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
     expect(&catalog, "0.5", "one");
+    expect(&catalog, "5e-1", "one");
     expect(&catalog, "1.0", "one");
     expect(&catalog, "2.0", "other");
+    expect(&catalog, "2e0", "other");
 
     size = build_catalog(bytes, sizeof(bytes),
                          RIN_I18N_PLURAL_RULE_ONE_NUMERIC);
@@ -129,6 +137,10 @@ int main(void) {
     expect(&catalog, "1", "one");
     expect(&catalog, "1.0", "one");
     expect(&catalog, "1.00", "one");
+    expect(&catalog, "1e0", "one");
+    expect(&catalog, "1.0e0", "one");
+    expect(&catalog, "1e1", "other");
+    expect(&catalog, "1e-1", "other");
     expect(&catalog, "0.5", "other");
     expect(&catalog, "1.5", "other");
     expect(&catalog, "2", "other");
@@ -174,9 +186,12 @@ int main(void) {
     expect(&catalog, "0", "other");
     expect(&catalog, "1", "one");
     expect(&catalog, "1.0", "one");
+    expect(&catalog, "1e0", "one");
     expect(&catalog, "1.50", "other");
     expect(&catalog, "2", "two");
     expect(&catalog, "2.00", "two");
+    expect(&catalog, "2e0", "two");
+    expect(&catalog, "2e-1", "other");
     expect(&catalog, "2.5", "other");
     expect(&catalog, "3", "other");
 
