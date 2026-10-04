@@ -96,7 +96,7 @@ extern "C" {
 /* Portuguese-like cardinal rule: integer operands 0..1 are one, exact
  * non-zero integer multiples of 1,000,000 are many, and all other bounded
  * decimal literals are other.  The many branch covers the e=0 form of the
- * CLDR rule; exponent notation is intentionally outside this parser. */
+ * CLDR rule; bounded e/E notation is normalized before this rule runs. */
 #define RIN_I18N_PLURAL_RULE_PORTUGUESE 23u
 /* Macedonian-like cardinal rule: integer values ending in 1 outside the
  * 11 modulo-100 exception are one; visible fraction digits ending in 1
