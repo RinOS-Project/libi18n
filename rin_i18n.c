@@ -561,9 +561,11 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_BRETON:
-        /* The bounded decimal grammar has no exponent operand.  A non-zero
-         * visible fraction is therefore outside this n-based subset and
-         * remains other; trailing-zero fractions retain their integer value. */
+        /* Scientific notation is normalized to the bounded n/i/f operands;
+         * the e operand itself is not exposed by this public subset.  A
+         * non-zero visible fraction is therefore outside this n-based subset
+         * and remains other; trailing-zero fractions retain their integer
+         * value. */
         if (operands.fraction_nonzero != 0u)
             break;
         if (operands.integer != 0u &&
@@ -583,9 +585,9 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
         }
         break;
     case RIN_I18N_PLURAL_RULE_FRENCH:
-        /* The bounded decimal grammar has no exponent operand.  The French
-         * many branch therefore covers exact non-zero million multiples;
-         * visible fractions remain in one/other according to n. */
+        /* The normalized bounded operands do not expose CLDR's e operand.
+         * The French many branch therefore covers exact non-zero million
+         * multiples; visible fractions remain in one/other according to n. */
         if (operands.integer <= 1u) {
             suffix = ".one";
         } else if (operands.visible_fraction_digits == 0u &&
@@ -596,9 +598,10 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
         break;
     case RIN_I18N_PLURAL_RULE_TACHELHIT:
         /* CLDR Tachelhit uses i=0 or n=1 for one, and n=2..10 for
-         * few.  This bounded parser has no exponent operand, so numeric n
-         * equal to an integer is represented by an integer part with no
-         * non-zero visible fraction; trailing-zero fractions retain n. */
+         * few.  Scientific notation is normalized before selection, while
+         * the public bounded operands do not expose CLDR's e operand; a
+         * numeric n equal to an integer is represented by an integer part
+         * with no non-zero visible fraction. */
         if (operands.integer == 0u ||
             (operands.integer == 1u && operands.fraction_nonzero == 0u)) {
             suffix = ".one";
