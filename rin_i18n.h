@@ -112,6 +112,10 @@ extern "C" {
  * exact non-zero integer multiples of 1,000,000 use many in this bounded
  * decimal selector, while visible fractions and all other values are other. */
 #define RIN_I18N_PLURAL_RULE_FRENCH 26u
+/* Tachelhit-like cardinal rule: integer operand zero or numeric n equal to
+ * one selects one, numeric n from 2 through 10 selects few, and all other
+ * bounded decimal values select other. */
+#define RIN_I18N_PLURAL_RULE_TACHELHIT 27u
 
 enum {
     RIN_I18N_OK = 0,

@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_FRENCH;
+    return rule <= RIN_I18N_PLURAL_RULE_TACHELHIT;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -466,6 +466,19 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
                    operands.integer != 0u &&
                    mod1000000 == 0u) {
             suffix = ".many";
+        }
+        break;
+    case RIN_I18N_PLURAL_RULE_TACHELHIT:
+        /* CLDR Tachelhit uses i=0 or n=1 for one, and n=2..10 for
+         * few.  This bounded parser has no exponent operand, so numeric n
+         * equal to an integer is represented by an integer part with no
+         * non-zero visible fraction; trailing-zero fractions retain n. */
+        if (operands.integer == 0u ||
+            (operands.integer == 1u && operands.fraction_nonzero == 0u)) {
+            suffix = ".one";
+        } else if (operands.fraction_nonzero == 0u &&
+                   operands.integer >= 2u && operands.integer <= 10u) {
+            suffix = ".few";
         }
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:
