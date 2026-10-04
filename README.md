@@ -10,5 +10,6 @@ The CMake contract tests are enabled with
 `rini18n-catalog-resource` and `rini18n-plural-decimal` tests.  The resource
 test covers blob/path loading and failure-atomic catalog state, while the
 plural test covers the bounded decimal selector rules, including the CLDR
-Tachelhit `one`/`few` and Russian `one`/`few`/`many` boundary subsets.  The selector remains a bounded
+Tachelhit `one`/`few`, Serbian `one`/`few`, and Russian `one`/`few`/`many`
+boundary subsets.  The selector remains a bounded
 catalog-format contract rather than a claim of complete CLDR locale coverage.

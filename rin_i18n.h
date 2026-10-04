@@ -119,6 +119,10 @@ extern "C" {
 /* Russian-like cardinal rule: with no visible fraction digits, integer
  * endings select one/few/many; visible fractions select other. */
 #define RIN_I18N_PLURAL_RULE_RUSSIAN 28u
+/* Serbian-like cardinal rule: integer endings select one/few with the
+ * 11..14 modulo-100 exceptions, and the visible fraction operand selects
+ * the same categories when it ends in 1 or 2..4. */
+#define RIN_I18N_PLURAL_RULE_SERBIAN 29u
 
 enum {
     RIN_I18N_OK = 0,

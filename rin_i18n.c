@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_RUSSIAN;
+    return rule <= RIN_I18N_PLURAL_RULE_SERBIAN;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -495,6 +495,28 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
         } else if (mod10 == 0u || (mod10 >= 5u && mod10 <= 9u) ||
                    (mod100 >= 11u && mod100 <= 14u)) {
             suffix = ".many";
+        }
+        break;
+    case RIN_I18N_PLURAL_RULE_SERBIAN:
+        /* CLDR Serbian uses integer operand i for whole numbers and the
+         * visible fraction operand f for decimals.  Keep the full visible
+         * fraction digits here: trailing zeroes are part of f, so 1.2 and
+         * 1.20 intentionally need not select the same category. */
+        if (operands.visible_fraction_digits == 0u) {
+            if (mod10 == 1u && mod100 != 11u) {
+                suffix = ".one";
+            } else if (mod10 >= 2u && mod10 <= 4u &&
+                       (mod100 < 12u || mod100 > 14u)) {
+                suffix = ".few";
+            }
+        } else if (operands.fraction_mod100_full % 10u == 1u &&
+                   operands.fraction_mod100_full != 11u) {
+            suffix = ".one";
+        } else if (operands.fraction_mod100_full % 10u >= 2u &&
+                   operands.fraction_mod100_full % 10u <= 4u &&
+                   (operands.fraction_mod100_full < 12u ||
+                    operands.fraction_mod100_full > 14u)) {
+            suffix = ".few";
         }
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:
