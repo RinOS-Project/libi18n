@@ -116,6 +116,9 @@ extern "C" {
  * one selects one, numeric n from 2 through 10 selects few, and all other
  * bounded decimal values select other. */
 #define RIN_I18N_PLURAL_RULE_TACHELHIT 27u
+/* Russian-like cardinal rule: with no visible fraction digits, integer
+ * endings select one/few/many; visible fractions select other. */
+#define RIN_I18N_PLURAL_RULE_RUSSIAN 28u
 
 enum {
     RIN_I18N_OK = 0,

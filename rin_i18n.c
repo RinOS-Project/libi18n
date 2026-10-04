@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_TACHELHIT;
+    return rule <= RIN_I18N_PLURAL_RULE_RUSSIAN;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -479,6 +479,22 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
         } else if (operands.fraction_nonzero == 0u &&
                    operands.integer >= 2u && operands.integer <= 10u) {
             suffix = ".few";
+        }
+        break;
+    case RIN_I18N_PLURAL_RULE_RUSSIAN:
+        /* CLDR Russian uses v=0 for the one/few/many branches.  In this
+         * bounded decimal API, every visible fraction, including 1.0,
+         * therefore remains other. */
+        if (operands.visible_fraction_digits != 0u)
+            break;
+        if (mod10 == 1u && mod100 != 11u) {
+            suffix = ".one";
+        } else if ((mod10 >= 2u && mod10 <= 4u) &&
+                   !(mod100 >= 12u && mod100 <= 14u)) {
+            suffix = ".few";
+        } else if (mod10 == 0u || (mod10 >= 5u && mod10 <= 9u) ||
+                   (mod100 >= 11u && mod100 <= 14u)) {
+            suffix = ".many";
         }
         break;
     case RIN_I18N_PLURAL_RULE_OTHER:
