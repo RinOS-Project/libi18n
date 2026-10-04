@@ -154,6 +154,21 @@ int main(void) {
     expect(&catalog, "0.9", "other");
 
     size = build_catalog(bytes, sizeof(bytes),
+                         RIN_I18N_PLURAL_RULE_SINHALA);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0", "one");
+    expect(&catalog, "0.0", "one");
+    expect(&catalog, "1", "one");
+    expect(&catalog, "1.00", "one");
+    expect(&catalog, "0.001", "one");
+    expect(&catalog, "0.01", "one");
+    expect(&catalog, "0.010", "other");
+    expect(&catalog, "0.1", "one");
+    expect(&catalog, "0.5", "other");
+    expect(&catalog, "1.5", "other");
+    expect(&catalog, "2", "other");
+
+    size = build_catalog(bytes, sizeof(bytes),
                          RIN_I18N_PLURAL_RULE_ONE_FEW_MANY);
     assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
     expect(&catalog, "1", "one");

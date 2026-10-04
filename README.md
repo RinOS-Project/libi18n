@@ -11,6 +11,6 @@ The CMake contract tests are enabled with
 test covers blob/path loading and failure-atomic catalog state, while the
 plural test covers the bounded decimal selector rules, including the CLDR
 Tachelhit `one`/`few`, Serbian `one`/`few`, Russian `one`/`few`/`many`,
-Albanian/Bulgarian-like numeric-one, and Filipino cardinal boundary subsets.
-The selector remains a bounded
+Albanian/Bulgarian-like numeric-one, Filipino, and Sinhala cardinal boundary
+subsets.  The selector remains a bounded
 catalog-format contract rather than a claim of complete CLDR locale coverage.

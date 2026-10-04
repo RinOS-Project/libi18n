@@ -77,13 +77,14 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_FILIPINO;
+    return rule <= RIN_I18N_PLURAL_RULE_SINHALA;
 }
 
 typedef struct RinI18nPluralOperands {
     uint64_t integer;
     uint32_t visible_fraction_digits;
     uint32_t fraction_nonzero;
+    uint32_t fraction_is_one;
     uint32_t fraction_mod100;
     uint32_t fraction_mod100_full;
 } RinI18nPluralOperands;
@@ -118,6 +119,7 @@ static int plural_number_parse(const char* number,
         length == 0u)
         return 0;
     operands->fraction_nonzero = 0u;
+    operands->fraction_is_one = 0u;
     operands->fraction_mod100 = 0u;
     operands->fraction_mod100_full = 0u;
     for (index = 0u; index < length; ++index) {
@@ -139,9 +141,12 @@ static int plural_number_parse(const char* number,
         fraction_end = length;
         while (fraction_end > dot + 1u && number[fraction_end - 1u] == '0')
             --fraction_end;
+        operands->fraction_is_one = number[length - 1u] == '1';
         for (index = dot + 1u; index < length; ++index) {
             if (number[index] < '0' || number[index] > '9') return 0;
             if (number[index] != '0') operands->fraction_nonzero = 1u;
+            if (index + 1u < length && number[index] != '0')
+                operands->fraction_is_one = 0u;
             operands->fraction_mod100_full =
                 (operands->fraction_mod100_full * 10u) +
                 (uint32_t)(number[index] - '0');
@@ -201,6 +206,15 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             if (last != 4u && last != 6u && last != 9u)
                 suffix = ".one";
         }
+        break;
+    case RIN_I18N_PLURAL_RULE_SINHALA:
+        /* n=0,1 includes trailing-zero spellings; the extra i=0 && f=1
+         * branch must use the complete visible fraction, so 0.001 is one
+         * but 0.010 is other. */
+        if (operands.integer <= 1u && operands.fraction_nonzero == 0u)
+            suffix = ".one";
+        else if (operands.integer == 0u && operands.fraction_is_one)
+            suffix = ".one";
         break;
     case RIN_I18N_PLURAL_RULE_ONE_FEW:
         if (operands.visible_fraction_digits == 0u &&
@@ -836,7 +850,7 @@ const char* rin_i18n_get(const RinI18nCatalog* catalog,
 const char* rin_i18n_plural(const RinI18nCatalog* catalog,
                             const char* domain, const char* key,
                             uint64_t count, const char* fallback) {
-    RinI18nPluralOperands operands = {count, 0u, 0u, 0u, 0u};
+    RinI18nPluralOperands operands = {count, 0u, 0u, 0u, 0u, 0u};
     return plural_lookup(catalog, domain, key, plural_suffix(catalog, operands),
                          fallback);
 }

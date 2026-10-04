@@ -131,6 +131,9 @@ extern "C" {
  * integer whose last digit is not 4, 6, or 9 is also one; visible fractions
  * use the full fraction's last digit with the same exclusions. */
 #define RIN_I18N_PLURAL_RULE_FILIPINO 31u
+/* Sinhala-like cardinal rule: numeric zero and one select one, as does a
+ * value with integer operand zero whose full visible fraction operand is 1. */
+#define RIN_I18N_PLURAL_RULE_SINHALA 32u
 
 enum {
     RIN_I18N_OK = 0,
