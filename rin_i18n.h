@@ -189,10 +189,11 @@ const char* rin_i18n_get(const RinI18nCatalog* catalog,
 const char* rin_i18n_plural(const RinI18nCatalog* catalog,
                             const char* domain, const char* key,
                             uint64_t count, const char* fallback);
-/* Selects a plural entry from a non-negative ASCII decimal literal.  The
- * bounded parser preserves visible fraction digits, so 1 and 1.0 can select
- * different CLDR-style categories.  Signs, exponents, malformed decimals,
- * and integer overflow are rejected and return fallback. */
+/* Selects a plural entry from a non-negative ASCII decimal or bounded
+ * scientific-notation literal.  The parser preserves visible fraction
+ * digits after normalizing a bounded e/E exponent, so 1 and 1.0 can select
+ * different CLDR-style categories.  Signs, malformed decimals, exponent
+ * overflow, and integer overflow are rejected and return fallback. */
 const char* rin_i18n_plural_decimal(const RinI18nCatalog* catalog,
                                     const char* domain, const char* key,
                                     const char* number,
