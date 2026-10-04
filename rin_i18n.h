@@ -134,6 +134,9 @@ extern "C" {
 /* Sinhala-like cardinal rule: numeric zero and one select one, as does a
  * value with integer operand zero whose full visible fraction operand is 1. */
 #define RIN_I18N_PLURAL_RULE_SINHALA 32u
+/* One-two cardinal rule: numeric one and two, including trailing-zero
+ * decimal spellings, select their matching categories; other values do not. */
+#define RIN_I18N_PLURAL_RULE_ONE_TWO 33u
 
 enum {
     RIN_I18N_OK = 0,

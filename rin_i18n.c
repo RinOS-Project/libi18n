@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_SINHALA;
+    return rule <= RIN_I18N_PLURAL_RULE_ONE_TWO;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -215,6 +215,12 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
             suffix = ".one";
         else if (operands.integer == 0u && operands.fraction_is_one)
             suffix = ".one";
+        break;
+    case RIN_I18N_PLURAL_RULE_ONE_TWO:
+        if (operands.fraction_nonzero == 0u && operands.integer == 1u)
+            suffix = ".one";
+        else if (operands.fraction_nonzero == 0u && operands.integer == 2u)
+            suffix = ".two";
         break;
     case RIN_I18N_PLURAL_RULE_ONE_FEW:
         if (operands.visible_fraction_digits == 0u &&
