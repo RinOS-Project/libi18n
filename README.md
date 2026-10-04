@@ -18,3 +18,10 @@ boundary subsets.  `e`/`E` exponents are accepted only within the fixed
 integer/fraction operands before selection, and malformed or overflowing
 forms remain failure-closed.  The selector remains a bounded
 catalog-format contract rather than a claim of complete CLDR locale coverage.
+
+The common sanitizer matrix also builds `fuzz/rini18n_fuzzer.c` against the
+public catalog parser and public Unicode tables.  It exercises catalog open,
+locale lookup, string lookup, plural decimal selection, and bounded format
+expansion with a deterministic `libi18n` corpus capped at 64 KiB per input.
+This target has no filesystem, locale-service, kernel, or repository
+authority; sanitizer execution remains a CI/host validation concern.
