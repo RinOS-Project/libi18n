@@ -134,6 +134,26 @@ int main(void) {
     expect(&catalog, "2", "other");
 
     size = build_catalog(bytes, sizeof(bytes),
+                         RIN_I18N_PLURAL_RULE_FILIPINO);
+    assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
+    expect(&catalog, "0", "one");
+    expect(&catalog, "1", "one");
+    expect(&catalog, "2", "one");
+    expect(&catalog, "3", "one");
+    expect(&catalog, "4", "other");
+    expect(&catalog, "5", "one");
+    expect(&catalog, "6", "other");
+    expect(&catalog, "9", "other");
+    expect(&catalog, "10", "one");
+    expect(&catalog, "14", "other");
+    expect(&catalog, "1.0", "one");
+    expect(&catalog, "1.4", "other");
+    expect(&catalog, "1.5", "one");
+    expect(&catalog, "2.6", "other");
+    expect(&catalog, "2.1", "one");
+    expect(&catalog, "0.9", "other");
+
+    size = build_catalog(bytes, sizeof(bytes),
                          RIN_I18N_PLURAL_RULE_ONE_FEW_MANY);
     assert(rin_i18n_catalog_open(&catalog, bytes, size) == RIN_I18N_OK);
     expect(&catalog, "1", "one");

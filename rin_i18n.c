@@ -77,7 +77,7 @@ static int range_valid(size_t size, uint32_t offset, uint32_t length) {
 }
 
 static int plural_rule_valid(uint32_t rule) {
-    return rule <= RIN_I18N_PLURAL_RULE_ONE_NUMERIC;
+    return rule <= RIN_I18N_PLURAL_RULE_FILIPINO;
 }
 
 typedef struct RinI18nPluralOperands {
@@ -186,6 +186,21 @@ static const char* plural_suffix(const RinI18nCatalog* catalog,
          * non-zero fractions such as 1.5 remain other. */
         if (operands.integer == 1u && operands.fraction_nonzero == 0u)
             suffix = ".one";
+        break;
+    case RIN_I18N_PLURAL_RULE_FILIPINO:
+        /* Filipino cardinal rules exclude visible values whose last integer
+         * or fraction digit is 4, 6, or 9.  The explicit 1..3 branch is
+         * redundant with the digit test but documents the CLDR rule. */
+        if (operands.visible_fraction_digits == 0u) {
+            const uint32_t last = mod10;
+            if ((operands.integer >= 1u && operands.integer <= 3u) ||
+                (last != 4u && last != 6u && last != 9u))
+                suffix = ".one";
+        } else {
+            const uint32_t last = operands.fraction_mod100_full % 10u;
+            if (last != 4u && last != 6u && last != 9u)
+                suffix = ".one";
+        }
         break;
     case RIN_I18N_PLURAL_RULE_ONE_FEW:
         if (operands.visible_fraction_digits == 0u &&

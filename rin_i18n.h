@@ -127,6 +127,10 @@ extern "C" {
  * bounded decimal literals with only trailing zeroes such as 1.0; all other
  * bounded decimal values select other. */
 #define RIN_I18N_PLURAL_RULE_ONE_NUMERIC 30u
+/* Filipino-like cardinal rule: integers 1..3 are one, and every other
+ * integer whose last digit is not 4, 6, or 9 is also one; visible fractions
+ * use the full fraction's last digit with the same exclusions. */
+#define RIN_I18N_PLURAL_RULE_FILIPINO 31u
 
 enum {
     RIN_I18N_OK = 0,
