@@ -170,6 +170,21 @@ int main(void) {
            strcmp(rin_i18n_get(&catalog, "common", "hello", "fallback"),
                   "Hello") == 0);
 
+    /* A resource-backed adapter must reject an absent or empty caller buffer
+     * before the path/blob loader can invoke owner code. */
+    catalog.data = source;
+    catalog.size = source_size;
+    storage_size = UINT64_MAX;
+    assert(rin_i18n_catalog_open_resource(
+               &catalog, &resources, 17u, NULL, NULL, NULL, 0u,
+               &storage_size) == RIN_I18N_INVALID);
+    assert(storage_size == 0u && catalog.data == NULL && catalog.size == 0u);
+    storage_size = UINT64_MAX;
+    assert(rin_i18n_catalog_open_resource(
+               &catalog, &resources, 17u, NULL, NULL, storage, 0u,
+               &storage_size) == RIN_I18N_INVALID);
+    assert(storage_size == 0u && catalog.data == NULL && catalog.size == 0u);
+
     path_context.source = source;
     path_context.source_size = source_size;
     path_context.observed_capacity = 0u;

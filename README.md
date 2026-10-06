@@ -8,7 +8,8 @@ publication authority; those remain with the caller or private owner.
 The CMake contract tests are enabled with
 `-DRIN_I18N_BUILD_TESTS=ON`; Meson exposes the same
 `rini18n-catalog-resource` and `rini18n-plural-decimal` tests.  The resource
-test covers blob/path loading and failure-atomic catalog state, while the
+test covers blob/path loading, empty-buffer rejection before owner callbacks,
+and failure-atomic catalog state, while the
 plural test covers bounded decimal and scientific-notation selector inputs,
 including the CLDR
 Tachelhit `one`/`few`, Serbian `one`/`few`, Russian `one`/`few`/`many`,

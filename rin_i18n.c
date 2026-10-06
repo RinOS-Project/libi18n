@@ -870,7 +870,8 @@ int rin_i18n_catalog_open_resource(
     if (catalog != NULL) memset(catalog, 0, sizeof(*catalog));
     if (storage_size != NULL) *storage_size = 0u;
     if (catalog == NULL || resources == NULL || storage_size == NULL ||
-        resource_id == 0u) return RIN_I18N_INVALID;
+        resource_id == 0u || storage == NULL || storage_capacity == 0u)
+        return RIN_I18N_INVALID;
     load_capacity = storage_capacity < (uint64_t)RIN_I18N_MAX_FILE_SIZE
         ? storage_capacity : (uint64_t)RIN_I18N_MAX_FILE_SIZE;
     resource_status = rin_resource_catalog_load(
